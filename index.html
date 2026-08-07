@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Monthly Bills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#151a1f;
+    --paper:#e9e4d6;
+    --paper-dim:#dcd6c4;
+    --brass:#b8892b;
+    --brass-light:#e0b563;
+    --red:#a8433a;
+    --green:#5c7a5e;
+    --line:#c9c2ac;
+    --muted:#6b6656;
+    --bg:#151a1f;
+    --card:#1c222a;
+    --card-border:#2a3038;
+    --text:#e9e4d6;
+    --text-dim:#8a8570;
+  }
+  body.light{
+    --bg:#e9e4d6;
+    --card:#f5f2e8;
+    --card-border:#d6cfb8;
+    --text:#151a1f;
+    --text-dim:#6b6656;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    transition:background .2s,color .2s;
+  }
+  ::selection{background:var(--brass);color:var(--ink);}
+
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
+
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:20px;
+    border-bottom:1px solid var(--card-border);
+    padding-bottom:20px;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  .brand-mark{
+    font-family:'Fraunces',serif;
+    font-size:14px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--brass-light);
+    margin:0 0 4px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:34px;
+    margin:0;
+    color:var(--text);
+  }
+  .top-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .month-nav{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .month-nav button{
+    background:none;
+    border:1px solid var(--card-border);
+    color:var(--text);
+    width:34px;height:34px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:16px;
+    transition:.15s;
+  }
+  .month-nav button:hover{border-color:var(--brass);color:var(--brass-light);}
+  .month-label{font-size:15px;min-width:150px;text-align:center;}
+
+  .icon-toggle{
+    background:none;border:1px solid var(--card-border);color:var(--text);
+    width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;
+  }
+  .icon-toggle:hover{border-color:var(--brass);}
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:22px;
+  }
+  .toolbar input[type=text], .toolbar select{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    color:var(--text);
+    padding:8px 12px;
+    border-radius:20px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .toolbar .spacer{flex:1;}
+  .link-btn{
+    background:none;border:1px solid var(--card-border);
+    color:var(--text-dim);padding:8px 14px;border-radius:20px;
+    cursor:pointer;font-family:'Inter',sans-serif;font-size:12.5px;
+  }
+  .link-btn:hover{color:var(--brass-light);border-color:var(--brass);}
+
+  .summary-row{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .stat-card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .stat-card .label{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .stat-card .value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:22px;
+    font-weight:600;
+  }
+  .stat-card.paid .value{color:var(--green);}
+  .stat-card.due .value{color:var(--brass-light);}
+  .stat-card.overdue .value{color:var(--red);}
+
+  .section-title{
+    font-family:'Fraunces',serif;
+    font-size:19px;
+    margin:34px 0 14px;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .section-title .rule{flex:1;height:1px;background:var(--card-border);}
+  .section-title .tiny{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-dim);font-weight:400;}
+
+  .carryover-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+  .carryover{
+    background:rgba(168,67,58,0.12);
+    border:1px solid var(--red);
+    border-radius:8px;
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+  }
+  .carryover .co-name{flex:1;color:var(--text);font-family:'Inter',sans-serif;}
+  .carryover button{
+    border:1px solid var(--red);background:none;color:var(--red);
+    padding:5px 10px;border-radius:14px;cursor:pointer;font-size:11px;
+    font-family:'Inter',sans-serif;font-weight:600;
+  }
+  .carryover button:hover{background:var(--red);color:#fff;}
+
+  .bill-list{display:flex;flex-direction:column;gap:10px;}
+
+  .bill{
+    position:relative;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 16px;
+    overflow:hidden;
+  }
+  .bill::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;width:5px;
+    background:var(--cat-color,var(--brass));
+  }
+  .bill.paid{opacity:.55;}
+  .bill.over-budget::after{
+    content:"⚠ over budget";
+    position:absolute;
+    top:6px;right:12px;
+    font-size:10px;
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--red);
+  }
+  .bill-main{flex:1;min-width:0;cursor:pointer;}
+  .bill-name{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:16px;
+    margin:0 0 2px;
+  }
+  .bill-name:hover{text-decoration:underline;}
+  .bill-meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .bill-note{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:3px;
+    font-style:italic;
+  }
+  .tag{
+    padding:1px 7px;
+    border-radius:20px;
+    background:var(--paper-dim);
+    font-size:11px;
+  }
+  .tag.overdue{background:var(--red);color:#fff;}
+  .tag.upcoming{background:var(--brass);color:#fff;}
+  .tag.completed{background:var(--green);color:#fff;}
+  .tag.onetime{background:#3d5a6b;color:#fff;}
+  .debt-progress{margin-top:8px;max-width:280px;}
+  .debt-progress .bar-track{
+    height:6px;border-radius:4px;background:var(--paper-dim);overflow:hidden;
+  }
+  .debt-progress .bar-fill{height:100%;background:var(--cat-color,var(--brass));border-radius:4px;}
+  .debt-progress .bar-label{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+    margin-top:4px;display:flex;justify-content:space-between;gap:10px;
+  }
+  .bill-amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:17px;
+    white-space:nowrap;
+  }
+  .bill-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+
+  .stamp-btn{
+    border:2px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:8px 14px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:.12s;
+  }
+  .stamp-btn:hover{background:var(--ink);color:var(--paper);}
+  .stamp-btn.is-paid{
+    border-color:var(--green);
+    color:var(--green);
+    transform:rotate(-4deg);
+    font-weight:700;
+  }
+  .stamp-btn.is-paid:hover{background:var(--green);color:#fff;}
+
+  .icon-btn{
+    background:none;border:none;color:var(--muted);
+    cursor:pointer;font-size:15px;padding:4px;
+    line-height:1;
+  }
+  .icon-btn:hover{color:var(--red);}
+  .icon-btn.edit:hover{color:var(--brass);}
+
+  .empty{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    border:1px dashed var(--card-border);
+    border-radius:10px;
+  }
+
+  .add-bar{
+    margin-top:16px;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+  }
+  .add-btn{
+    background:var(--brass);
+    color:#1c130a;
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:11px 20px;
+    border-radius:24px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .add-btn:hover{background:var(--brass-light);}
+
+  .charts-row{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:16px;
+    margin-top:14px;
+  }
+  .chart-card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:10px;
+    padding:18px;
+  }
+  .chart-card h3{
+    font-family:'Fraunces',serif;
+    font-size:14px;
+    margin:0 0 12px;
+    color:var(--text-dim);
+    font-weight:600;
+    letter-spacing:.03em;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .budget-warning{color:var(--red);font-size:11px;font-family:'IBM Plex Mono',monospace;}
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(10,12,15,.7);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:20px;
+    overflow-y:auto;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--paper);
+    color:var(--ink);
+    width:100%;max-width:420px;
+    border-radius:12px;
+    padding:26px;
+    margin:auto;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .modal h2{
+    font-family:'Fraunces',serif;
+    margin:0 0 18px;
+    font-size:22px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .field input,.field select,.field textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#f5f2e8;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:50px;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--brass);border-color:transparent;}
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:20px;
+  }
+  .btn-secondary{
+    background:none;border:1px solid var(--line);
+    color:var(--ink);padding:9px 16px;border-radius:20px;
+    cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;
+  }
+  .btn-primary{
+    background:var(--ink);color:var(--paper);
+    border:none;padding:9px 18px;border-radius:20px;
+    cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+  }
+
+  .history-list{list-style:none;padding:0;margin:0;max-height:240px;overflow-y:auto;}
+  .history-list li{
+    display:flex;justify-content:space-between;
+    padding:8px 0;border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  .history-list li .st-paid{color:var(--green);font-weight:600;}
+  .history-list li .st-unpaid{color:var(--red);}
+
+  .budget-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .budget-row label{flex:1;font-size:13px;}
+  .budget-row input{width:110px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#f5f2e8;color:var(--ink);font-family:'IBM Plex Mono',monospace;}
+
+  footer.note{
+    text-align:center;
+    margin-top:40px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+  }
+
+  @media(max-width:640px){
+    .summary-row{grid-template-columns:1fr;}
+    .charts-row{grid-template-columns:1fr;}
+    .bill{flex-wrap:wrap;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="brand-mark">The Household Ledger</p>
+      <h1>Monthly Bills</h1>
+    </div>
+    <div class="top-right">
+      <div class="month-nav">
+        <button id="prevMonth" aria-label="Previous month">‹</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button id="nextMonth" aria-label="Next month">›</button>
+      </div>
+      <button class="icon-toggle" id="themeToggle" title="Toggle theme">◐</button>
+      <button class="icon-toggle" id="notifyToggle" title="Enable due-date reminders">🔔</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search bills…">
+    <select id="filterCategory">
+      <option value="">All categories</option>
+      <option>Rent</option><option>Utility</option><option>Subscription</option><option>Loan</option><option>Kuri</option><option>Other</option>
+    </select>
+    <select id="filterStatus">
+      <option value="">All statuses</option>
+      <option value="paid">Paid</option>
+      <option value="unpaid">Unpaid</option>
+      <option value="overdue">Overdue</option>
+    </select>
+    <select id="sortBy">
+      <option value="dueDay">Sort: due day</option>
+      <option value="amount">Sort: amount</option>
+      <option value="category">Sort: category</option>
+      <option value="name">Sort: name</option>
+    </select>
+    <div class="spacer"></div>
+    <select id="currencySelect" title="Display currency"></select>
+    <button class="link-btn" id="openBudget">Budgets</button>
+    <button class="link-btn" id="exportJson">Export JSON</button>
+    <button class="link-btn" id="exportCsv">Export CSV</button>
+    <button class="link-btn" id="importBtn">Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none;">
+  </div>
+
+  <div class="summary-row">
+    <div class="stat-card paid">
+      <div class="label">Paid this month</div>
+      <div class="value" id="paidTotal">0</div>
+    </div>
+    <div class="stat-card due">
+      <div class="label">Still due</div>
+      <div class="value" id="dueTotal">0</div>
+    </div>
+    <div class="stat-card overdue">
+      <div class="label">Overdue</div>
+      <div class="value" id="overdueCount">0 bills</div>
+    </div>
+  </div>
+
+  <div id="carryoverSection" style="display:none;">
+    <div class="section-title">Carried over, unpaid from earlier months<div class="rule"></div></div>
+    <div class="carryover-list" id="carryoverList"></div>
+  </div>
+
+  <div class="section-title">This month's bills<div class="rule"></div></div>
+  <div class="bill-list" id="billList"></div>
+  <div class="empty" id="emptyState" style="display:none;">No bills yet. Add your first one below.</div>
+
+  <div class="add-bar">
+    <button class="add-btn" id="openAdd">+ Add bill</button>
+  </div>
+
+  <div class="section-title">Overview<span class="tiny" id="yearToggleWrap"><button class="link-btn" id="yearToggle">Show yearly view</button></span><div class="rule"></div></div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3><span id="trendTitle">Paid vs. total, last 6 months</span></h3>
+      <canvas id="trendChart" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3><span id="catTitle">By category, this month</span></h3>
+      <canvas id="catChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <footer class="note">Stored locally in this browser · nothing leaves your device</footer>
+</div>
+
+<!-- Add/Edit bill modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add a bill</h2>
+    <div class="field">
+      <label for="billName">Name</label>
+      <input type="text" id="billName" placeholder="e.g. Rent, Electricity, Netflix">
+    </div>
+    <div class="field">
+      <label for="billFrequency">Frequency</label>
+      <select id="billFrequency">
+        <option value="monthly">Monthly — repeats every month</option>
+        <option value="once">One-time — just this month's expense</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="billCategory">Category</label>
+      <select id="billCategory">
+        <option value="Rent">Rent</option>
+        <option value="Utility">Utility</option>
+        <option value="Subscription">Subscription</option>
+        <option value="Loan">Loan / EMI</option>
+        <option value="Kuri">Kuri / Chit fund</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field" id="debtToggleField">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="isDebtCheck" style="width:auto;">
+        This is a debt / EMI / Kuri with a fixed number of installments
+      </label>
+    </div>
+    <div id="debtFields" style="display:none;">
+      <div class="field">
+        <label for="totalInstallments">Total installments (months)</label>
+        <input type="number" id="totalInstallments" min="1" placeholder="e.g. 20">
+      </div>
+      <div class="field">
+        <label for="alreadyPaidCount">Already paid installments (if starting mid-way)</label>
+        <input type="number" id="alreadyPaidCount" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="kuriPayoutMonth">Kuri payout installment number (optional)</label>
+        <input type="number" id="kuriPayoutMonth" min="1" placeholder="e.g. 12 — the month you receive the lump sum">
+      </div>
+    </div>
+    <div class="field">
+      <label for="billAmount">Amount<span id="amountHintDebt" style="text-transform:none;letter-spacing:0;display:none;"> (per installment)</span></label>
+      <input type="number" id="billAmount" min="0" step="0.01" placeholder="0.00">
+    </div>
+    <div class="field">
+      <label for="billDueDay">Due day of month (1–31)</label>
+      <input type="number" id="billDueDay" min="1" max="31" placeholder="e.g. 5">
+    </div>
+    <div class="field">
+      <label for="billNote">Note (optional)</label>
+      <textarea id="billNote" placeholder="e.g. paid via UPI, landlord's account ending 4521"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelAdd">Cancel</button>
+      <button class="btn-primary" id="saveBill">Save bill</button>
+    </div>
+  </div>
+</div>
+
+<!-- History modal -->
+<div class="overlay" id="historyOverlay">
+  <div class="modal">
+    <h2 id="historyTitle">Payment history</h2>
+    <ul class="history-list" id="historyList"></ul>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="closeHistory">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Budget modal -->
+<div class="overlay" id="budgetOverlay">
+  <div class="modal">
+    <h2>Monthly budget caps</h2>
+    <div id="budgetFields"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="closeBudget">Cancel</button>
+      <button class="btn-primary" id="saveBudget">Save caps</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'ledger.bills.v2';
+  const BUDGET_KEY = 'ledger.budgets.v1';
+  const PREFS_KEY = 'ledger.prefs.v1';
+  const CAT_COLORS = { Rent:'#b8892b', Utility:'#5c7a5e', Subscription:'#7a6ba0', Loan:'#a8433a', Kuri:'#3d6b8a', Other:'#6b6656' };
+  const CURRENCIES = { INR:'₹', USD:'$', GBP:'£', EUR:'€', AED:'د.إ' };
+  const CATEGORIES = ['Rent','Utility','Subscription','Loan','Kuri','Other'];
+
+  let bills = load(STORAGE_KEY, []);
+  let budgets = load(BUDGET_KEY, {});
+  let prefs = load(PREFS_KEY, { theme:'dark', currency:'INR', notify:false });
+  let viewDate = new Date();
+  viewDate.setDate(1);
+  let editingId = null;
+  let yearlyView = false;
+
+  function load(key, fallback){
+    try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function saveBills(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); }
+  function saveBudgets(){ localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets)); }
+  function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
+
+  function monthKey(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+  function fmtMoney(n){
+    const sym = CURRENCIES[prefs.currency] || '';
+    return sym + Number(n).toLocaleString('en-IN', {maximumFractionDigits:2});
+  }
+  function fmtMonthLabel(d){ return d.toLocaleDateString('en-IN', {month:'long', year:'numeric'}); }
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function isPaid(bill, key){ return !!(bill.paidMonths && bill.paidMonths[key]); }
+  function paidCount(bill){
+    if(!bill.paidMonths) return 0;
+    return Object.values(bill.paidMonths).filter(Boolean).length;
+  }
+  function isDebtComplete(bill){
+    return bill.isDebt && bill.totalInstallments && paidCount(bill) >= Number(bill.totalInstallments);
+  }
+
+  function dueStatus(bill, key){
+    const paid = isPaid(bill, key);
+    if(paid) return 'paid';
+    const today = new Date();
+    const isCurrentMonth = key === monthKey(today);
+    if(isCurrentMonth){
+      if(today.getDate() > bill.dueDay) return 'overdue';
+      if(bill.dueDay - today.getDate() <= 3) return 'upcoming';
+    } else if (key < monthKey(today)){
+      return 'overdue';
+    }
+    return 'pending';
+  }
+
+  // theme + currency + notify init
+  function applyTheme(){
+    document.body.classList.toggle('light', prefs.theme==='light');
+    document.getElementById('themeToggle').textContent = prefs.theme==='light' ? '◑' : '◐';
+  }
+  function initCurrencySelect(){
+    const sel = document.getElementById('currencySelect');
+    sel.innerHTML = Object.keys(CURRENCIES).map(c=>`<option value="${c}">${c} ${CURRENCIES[c]}</option>`).join('');
+    sel.value = prefs.currency;
+  }
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    prefs.theme = prefs.theme==='light' ? 'dark' : 'light';
+    savePrefs(); applyTheme();
+  });
+  document.getElementById('currencySelect').addEventListener('change', (e)=>{
+    prefs.currency = e.target.value; savePrefs(); render();
+  });
+
+  function initNotify(){
+    document.getElementById('notifyToggle').style.opacity = prefs.notify ? '1':'0.5';
+  }
+  document.getElementById('notifyToggle').addEventListener('click', async ()=>{
+    if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
+    if(!prefs.notify){
+      const perm = await Notification.requestPermission();
+      if(perm === 'granted'){
+        prefs.notify = true; savePrefs(); initNotify();
+        checkDueNotifications();
+        alert('Reminders on. Keep this tab/browser open around your due dates to get alerts.');
+      } else {
+        alert('Notification permission was not granted.');
+      }
+    } else {
+      prefs.notify = false; savePrefs(); initNotify();
+    }
+  });
+  function checkDueNotifications(){
+    if(!prefs.notify || !('Notification' in window) || Notification.permission!=='granted') return;
+    const today = new Date();
+    const tomorrow = today.getDate()+1;
+    const key = monthKey(today);
+    bills.forEach(b=>{
+      if(!isPaid(b,key) && b.dueDay === tomorrow){
+        new Notification('Bill due tomorrow', { body: `${b.name} — ${fmtMoney(b.amount)} due on day ${b.dueDay}` });
+      }
+    });
+  }
+
+  // ---------- render ----------
+  function getFilteredSortedBills(key){
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const catFilter = document.getElementById('filterCategory').value;
+    const statusFilter = document.getElementById('filterStatus').value;
+    const sortBy = document.getElementById('sortBy').value;
+
+    let list = bills.filter(b=>{
+      if(b.frequency === 'once' && b.oneTimeMonth !== key) return false;
+      if(q && !b.name.toLowerCase().includes(q)) return false;
+      if(catFilter && b.category !== catFilter) return false;
+      if(statusFilter){
+        const st = dueStatus(b, key);
+        if(statusFilter==='paid' && st!=='paid') return false;
+        if(statusFilter==='unpaid' && st==='paid') return false;
+        if(statusFilter==='overdue' && st!=='overdue') return false;
+      }
+      return true;
+    });
+
+    list.sort((a,b)=>{
+      if(sortBy==='amount') return b.amount - a.amount;
+      if(sortBy==='category') return a.category.localeCompare(b.category);
+      if(sortBy==='name') return a.name.localeCompare(b.name);
+      return a.dueDay - b.dueDay;
+    });
+    return list;
+  }
+
+  function getCarryovers(key){
+    // for each recurring bill, check months from its createdMonth up to (but not including) key, unpaid
+    // one-time bills only ever produce a single carryover entry for their own month
+    const items = [];
+    bills.forEach(b=>{
+      if(b.frequency === 'once'){
+        if(b.oneTimeMonth && b.oneTimeMonth < key && !isPaid(b, b.oneTimeMonth)){
+          items.push({ bill:b, key:b.oneTimeMonth });
+        }
+        return;
+      }
+      if(!b.createdMonth) return;
+      let cursor = new Date(b.createdMonth + '-01');
+      const target = new Date(key + '-01');
+      while(cursor < target){
+        const k = monthKey(cursor);
+        if(!isPaid(b, k)){
+          items.push({ bill:b, key:k });
+        }
+        cursor.setMonth(cursor.getMonth()+1);
+      }
+    });
+    return items;
+  }
+
+  function render(){
+    const key = monthKey(viewDate);
+    document.getElementById('monthLabel').textContent = fmtMonthLabel(viewDate);
+
+    // carryovers
+    const carryovers = getCarryovers(key);
+    const coSection = document.getElementById('carryoverSection');
+    const coList = document.getElementById('carryoverList');
+    coList.innerHTML = '';
+    if(carryovers.length){
+      coSection.style.display = 'block';
+      carryovers.forEach(({bill,key:ck})=>{
+        const row = document.createElement('div');
+        row.className = 'carryover';
+        const md = new Date(ck+'-01');
+        row.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</span>
+          <span class="co-name">${escapeHtml(bill.name)} — ${fmtMoney(bill.amount)}</span>
+          <button data-id="${bill.id}" data-key="${ck}">Mark paid</button>`;
+        coList.appendChild(row);
+      });
+    } else {
+      coSection.style.display = 'none';
+    }
+
+    const list = document.getElementById('billList');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+
+    const shown = getFilteredSortedBills(key);
+    empty.style.display = (bills.length===0) ? 'block' : (shown.length===0 ? 'block':'none');
+    if(bills.length===0) empty.textContent = 'No bills yet. Add your first one below.';
+    else if(shown.length===0) empty.textContent = 'No bills match your search or filters.';
+
+    let paidTotal = 0, dueTotal = 0, overdueCount = 0;
+
+    // totals are computed over ALL bills (not filtered), carryovers add to due/overdue
+    bills.forEach(b=>{
+      if(b.frequency === 'once' && b.oneTimeMonth !== key) return;
+      const paid = isPaid(b, key);
+      const status = dueStatus(b, key);
+      if(paid) paidTotal += Number(b.amount);
+      else { dueTotal += Number(b.amount); if(status==='overdue') overdueCount++; }
+    });
+    carryovers.forEach(({bill})=>{ dueTotal += Number(bill.amount); overdueCount++; });
+
+    // category budget check for current month
+    const catTotalsThisMonth = {};
+    bills.forEach(b=>{
+      if(b.frequency === 'once' && b.oneTimeMonth !== key) return;
+      catTotalsThisMonth[b.category] = (catTotalsThisMonth[b.category]||0) + Number(b.amount);
+    });
+
+    shown.forEach(bill=>{
+      const paid = isPaid(bill, key);
+      const status = dueStatus(bill, key);
+      const overBudget = budgets[bill.category] && catTotalsThisMonth[bill.category] > Number(budgets[bill.category]);
+
+      const row = document.createElement('div');
+      row.className = 'bill' + (paid ? ' paid' : '') + (overBudget ? ' over-budget':'');
+      row.style.setProperty('--cat-color', CAT_COLORS[bill.category] || '#b8892b');
+
+      const debtDone = isDebtComplete(bill);
+      let tagHtml = `<span class="tag">${bill.category}</span>`;
+      if(bill.frequency === 'once') tagHtml += `<span class="tag onetime">One-time</span>`;
+      if(debtDone) tagHtml += `<span class="tag completed">Completed</span>`;
+      else if(!paid && status==='overdue') tagHtml += `<span class="tag overdue">Overdue</span>`;
+      else if(!paid && status==='upcoming') tagHtml += `<span class="tag upcoming">Due soon</span>`;
+
+      let debtHtml = '';
+      if(bill.isDebt && bill.totalInstallments){
+        const pc = paidCount(bill);
+        const total = Number(bill.totalInstallments);
+        const pct = Math.min(100, Math.round((pc/total)*100));
+        const remaining = Math.max(0, (total - pc)) * Number(bill.amount);
+        const payoutNote = bill.kuriPayoutMonth ? ` · payout at installment ${bill.kuriPayoutMonth}` : '';
+        debtHtml = `
+          <div class="debt-progress">
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="bar-label">
+              <span>Installment ${Math.min(pc,total)} of ${total}${payoutNote}</span>
+              <span>Remaining: ${fmtMoney(remaining)}</span>
+            </div>
+          </div>`;
+      }
+
+      row.innerHTML = `
+        <div class="bill-main" data-action="history" data-id="${bill.id}">
+          <p class="bill-name">${escapeHtml(bill.name)}</p>
+          <div class="bill-meta">
+            <span>Due on ${bill.dueDay}</span>
+            ${tagHtml}
+          </div>
+          ${bill.note ? `<div class="bill-note">${escapeHtml(bill.note)}</div>` : ''}
+          ${debtHtml}
+        </div>
+        <div class="bill-amount">${fmtMoney(bill.amount)}</div>
+        <div class="bill-actions">
+          <button class="icon-btn edit" data-id="${bill.id}" data-action="edit" title="Edit">✎</button>
+          <button class="stamp-btn ${paid?'is-paid':''}" data-id="${bill.id}" data-action="toggle" ${debtDone && !paid ? '' : ''}>${paid ? '✓ Paid' : 'Mark paid'}</button>
+          <button class="icon-btn" data-id="${bill.id}" data-action="delete" aria-label="Delete bill" title="Delete">✕</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    document.getElementById('paidTotal').textContent = fmtMoney(paidTotal);
+    document.getElementById('dueTotal').textContent = fmtMoney(dueTotal);
+    document.getElementById('overdueCount').textContent = overdueCount + (overdueCount===1?' bill':' bills');
+
+    renderCharts(key);
+    checkDueNotifications();
+  }
+
+  document.getElementById('billList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const key = monthKey(viewDate);
+    const bill = bills.find(b=>b.id===id);
+    if(!bill) return;
+
+    if(action==='toggle'){
+      bill.paidMonths = bill.paidMonths || {};
+      bill.paidMonths[key] = !bill.paidMonths[key];
+      saveBills(); render();
+    } else if(action==='delete'){
+      if(confirm(`Delete "${bill.name}"? This removes it and its payment history.`)){
+        bills = bills.filter(b=>b.id!==id);
+        saveBills(); render();
+      }
+    } else if(action==='edit'){
+      openEditModal(bill);
+    } else if(action==='history'){
+      openHistory(bill);
+    }
+  });
+
+  document.getElementById('carryoverList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-id]');
+    if(!btn) return;
+    const bill = bills.find(b=>b.id===btn.dataset.id);
+    if(!bill) return;
+    bill.paidMonths = bill.paidMonths || {};
+    bill.paidMonths[btn.dataset.key] = true;
+    saveBills(); render();
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); render(); });
+  document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); render(); });
+  ['searchInput'].forEach(id=>document.getElementById(id).addEventListener('input', render));
+  ['filterCategory','filterStatus','sortBy'].forEach(id=>document.getElementById(id).addEventListener('change', render));
+
+  // ---------- add/edit modal ----------
+  const overlay = document.getElementById('overlay');
+  document.getElementById('openAdd').addEventListener('click', ()=>{
+    editingId = null;
+    document.getElementById('modalTitle').textContent = 'Add a bill';
+    document.getElementById('billName').value='';
+    document.getElementById('billCategory').value='Rent';
+    document.getElementById('billAmount').value='';
+    document.getElementById('billDueDay').value='';
+    document.getElementById('billNote').value='';
+    document.getElementById('billFrequency').value = 'monthly';
+    document.getElementById('isDebtCheck').checked = false;
+    document.getElementById('totalInstallments').value = '';
+    document.getElementById('alreadyPaidCount').value = '';
+    document.getElementById('kuriPayoutMonth').value = '';
+    toggleDebtFields();
+    toggleFrequencyFields();
+    overlay.classList.add('show');
+    document.getElementById('billName').focus();
+  });
+  function toggleDebtFields(){
+    const on = document.getElementById('isDebtCheck').checked;
+    document.getElementById('debtFields').style.display = on ? 'block' : 'none';
+    document.getElementById('amountHintDebt').style.display = on ? 'inline' : 'none';
+  }
+  function toggleFrequencyFields(){
+    const once = document.getElementById('billFrequency').value === 'once';
+    document.getElementById('debtToggleField').style.display = once ? 'none' : 'block';
+    if(once){
+      document.getElementById('isDebtCheck').checked = false;
+      toggleDebtFields();
+    }
+  }
+  document.getElementById('isDebtCheck').addEventListener('change', toggleDebtFields);
+  document.getElementById('billFrequency').addEventListener('change', toggleFrequencyFields);
+
+  function openEditModal(bill){
+    editingId = bill.id;
+    document.getElementById('modalTitle').textContent = 'Edit bill';
+    document.getElementById('billName').value = bill.name;
+    document.getElementById('billFrequency').value = bill.frequency || 'monthly';
+    document.getElementById('billCategory').value = bill.category;
+    document.getElementById('billAmount').value = bill.amount;
+    document.getElementById('billDueDay').value = bill.dueDay;
+    document.getElementById('billNote').value = bill.note || '';
+    document.getElementById('isDebtCheck').checked = !!bill.isDebt;
+    document.getElementById('totalInstallments').value = bill.totalInstallments || '';
+    document.getElementById('alreadyPaidCount').value = '';
+    document.getElementById('kuriPayoutMonth').value = bill.kuriPayoutMonth || '';
+    toggleDebtFields();
+    toggleFrequencyFields();
+    overlay.classList.add('show');
+  }
+  document.getElementById('cancelAdd').addEventListener('click', ()=> overlay.classList.remove('show'));
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+
+  document.getElementById('saveBill').addEventListener('click', ()=>{
+    const name = document.getElementById('billName').value.trim();
+    const category = document.getElementById('billCategory').value;
+    const amount = parseFloat(document.getElementById('billAmount').value);
+    const dueDay = parseInt(document.getElementById('billDueDay').value, 10);
+    const note = document.getElementById('billNote').value.trim();
+    const frequency = document.getElementById('billFrequency').value;
+    const isDebt = frequency === 'monthly' && document.getElementById('isDebtCheck').checked;
+    const totalInstallments = isDebt ? parseInt(document.getElementById('totalInstallments').value,10) : null;
+    const alreadyPaidCount = isDebt ? (parseInt(document.getElementById('alreadyPaidCount').value,10) || 0) : 0;
+    const kuriPayoutMonth = isDebt ? (parseInt(document.getElementById('kuriPayoutMonth').value,10) || null) : null;
+
+    if(!name){ alert('Please enter a bill name.'); return; }
+    if(isNaN(amount) || amount < 0){ alert('Please enter a valid amount.'); return; }
+    if(isNaN(dueDay) || dueDay < 1 || dueDay > 31){ alert('Please enter a due day between 1 and 31.'); return; }
+    if(isDebt && (isNaN(totalInstallments) || totalInstallments < 1)){ alert('Please enter the total number of installments.'); return; }
+
+    if(editingId){
+      const bill = bills.find(b=>b.id===editingId);
+      const patch = { name, category, amount, dueDay, note, isDebt, totalInstallments, kuriPayoutMonth, frequency };
+      if(frequency === 'once' && !bill.oneTimeMonth) patch.oneTimeMonth = monthKey(viewDate);
+      if(frequency === 'monthly') patch.oneTimeMonth = null;
+      Object.assign(bill, patch);
+    } else {
+      const createdMonth = monthKey(viewDate);
+      const paidMonths = {};
+      if(isDebt && alreadyPaidCount > 0){
+        // backfill synthetic prior months so the progress bar reflects installments already paid before tracking started
+        let cursor = new Date(createdMonth+'-01');
+        for(let i=0;i<alreadyPaidCount;i++){
+          cursor.setMonth(cursor.getMonth()-1);
+        }
+        for(let i=0;i<alreadyPaidCount;i++){
+          paidMonths[monthKey(cursor)] = true;
+          cursor.setMonth(cursor.getMonth()+1);
+        }
+      }
+      bills.push({
+        id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+        name, category, amount, dueDay, note,
+        isDebt, totalInstallments, kuriPayoutMonth,
+        frequency, oneTimeMonth: frequency === 'once' ? createdMonth : null,
+        createdMonth,
+        paidMonths
+      });
+    }
+    saveBills();
+    overlay.classList.remove('show');
+    render();
+  });
+
+  // ---------- history modal ----------
+  const historyOverlay = document.getElementById('historyOverlay');
+  function openHistory(bill){
+    document.getElementById('historyTitle').textContent = `Payment history — ${bill.name}`;
+    const listEl = document.getElementById('historyList');
+    listEl.innerHTML = '';
+    const start = bill.createdMonth ? new Date(bill.createdMonth+'-01') : new Date();
+    const now = new Date();
+    const months = [];
+    let cursor = new Date(start);
+    while(cursor <= now){
+      months.push(monthKey(cursor));
+      cursor.setMonth(cursor.getMonth()+1);
+    }
+    months.reverse();
+    if(months.length===0){
+      listEl.innerHTML = '<li>No history yet.</li>';
+    } else {
+      months.forEach(k=>{
+        const md = new Date(k+'-01');
+        const paid = isPaid(bill,k);
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</span><span class="${paid?'st-paid':'st-unpaid'}">${paid?'Paid':'Unpaid'}</span>`;
+        listEl.appendChild(li);
+      });
+    }
+    historyOverlay.classList.add('show');
+  }
+  document.getElementById('closeHistory').addEventListener('click', ()=> historyOverlay.classList.remove('show'));
+  historyOverlay.addEventListener('click', (e)=>{ if(e.target===historyOverlay) historyOverlay.classList.remove('show'); });
+
+  // ---------- budget modal ----------
+  const budgetOverlay = document.getElementById('budgetOverlay');
+  document.getElementById('openBudget').addEventListener('click', ()=>{
+    const wrap = document.getElementById('budgetFields');
+    wrap.innerHTML = CATEGORIES.map(c=>`
+      <div class="budget-row">
+        <label for="budget_${c}">${c} cap (0 = no cap)</label>
+        <input type="number" id="budget_${c}" min="0" step="0.01" value="${budgets[c]||''}">
+      </div>
+    `).join('');
+    budgetOverlay.classList.add('show');
+  });
+  document.getElementById('closeBudget').addEventListener('click', ()=> budgetOverlay.classList.remove('show'));
+  budgetOverlay.addEventListener('click', (e)=>{ if(e.target===budgetOverlay) budgetOverlay.classList.remove('show'); });
+  document.getElementById('saveBudget').addEventListener('click', ()=>{
+    CATEGORIES.forEach(c=>{
+      const v = parseFloat(document.getElementById('budget_'+c).value);
+      if(!isNaN(v) && v>0) budgets[c] = v; else delete budgets[c];
+    });
+    saveBudgets();
+    budgetOverlay.classList.remove('show');
+    render();
+  });
+
+  // ---------- export / import ----------
+  document.getElementById('exportJson').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify({bills,budgets,prefs}, null, 2)], {type:'application/json'});
+    downloadBlob(blob, 'ledger-bills.json');
+  });
+  document.getElementById('exportCsv').addEventListener('click', ()=>{
+    const rows = [['Name','Category','Amount','Due Day','Note','Created Month','Paid Months']];
+    bills.forEach(b=>{
+      const paidList = Object.keys(b.paidMonths||{}).filter(k=>b.paidMonths[k]).join(';');
+      rows.push([b.name,b.category,b.amount,b.dueDay,b.note||'',b.createdMonth||'',paidList]);
+    });
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    downloadBlob(new Blob([csv],{type:'text/csv'}), 'ledger-bills.csv');
+  });
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(!Array.isArray(data.bills)) throw new Error('Invalid file');
+        const mode = confirm('Click OK to REPLACE all current bills, or Cancel to MERGE with existing bills.');
+        if(mode){ bills = data.bills; }
+        else { bills = bills.concat(data.bills); }
+        if(data.budgets) budgets = data.budgets;
+        saveBills(); saveBudgets(); render();
+        alert('Import complete.');
+      }catch(err){
+        alert('Could not read that file. Make sure it\'s a JSON export from this app.');
+      }
+      document.getElementById('importFile').value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- charts ----------
+  let trendChart, catChart;
+  document.getElementById('yearToggle').addEventListener('click', ()=>{
+    yearlyView = !yearlyView;
+    document.getElementById('yearToggle').textContent = yearlyView ? 'Show 6-month view' : 'Show yearly view';
+    render();
+  });
+
+  function renderCharts(currentKey){
+    if(yearlyView){
+      renderYearlyCharts();
+      return;
+    }
+    document.getElementById('trendTitle').textContent = 'Paid vs. total, last 6 months';
+    document.getElementById('catTitle').textContent = 'By category, this month';
+
+    const months = [];
+    const d = new Date(viewDate);
+    for(let i=5;i>=0;i--){ months.push(new Date(d.getFullYear(), d.getMonth()-i, 1)); }
+    const labels = months.map(m=>m.toLocaleDateString('en-IN',{month:'short'}));
+    const paidData = months.map(m=>{
+      const k = monthKey(m);
+      return bills.filter(b=>isPaid(b,k)).reduce((s,b)=>s+Number(b.amount),0);
+    });
+    const totalData = months.map(()=> bills.reduce((s,b)=>s+Number(b.amount),0));
+
+    drawTrend(labels, totalData, paidData, 'Total billed', 'Paid');
+
+    const catTotals = {};
+    bills.forEach(b=>{ catTotals[b.category] = (catTotals[b.category]||0) + Number(b.amount); });
+    drawCategoryChart(catTotals);
+
+    // budget warning text
+    const warnCats = Object.keys(catTotals).filter(c=>budgets[c] && catTotals[c] > budgets[c]);
+    let warnEl = document.getElementById('catTitle').parentElement.querySelector('.budget-warning');
+    if(warnEl) warnEl.remove();
+    if(warnCats.length){
+      const span = document.createElement('span');
+      span.className = 'budget-warning';
+      span.textContent = `⚠ over cap: ${warnCats.join(', ')}`;
+      document.getElementById('catTitle').parentElement.appendChild(span);
+    }
+  }
+
+  function renderYearlyCharts(){
+    document.getElementById('trendTitle').textContent = 'Paid vs. total, this year by month';
+    document.getElementById('catTitle').textContent = 'By category, this year';
+
+    const year = viewDate.getFullYear();
+    const months = [];
+    for(let m=0;m<12;m++){ months.push(new Date(year, m, 1)); }
+    const labels = months.map(m=>m.toLocaleDateString('en-IN',{month:'short'}));
+    const paidData = months.map(m=>{
+      const k = monthKey(m);
+      return bills.filter(b=>isPaid(b,k)).reduce((s,b)=>s+Number(b.amount),0);
+    });
+    const totalData = months.map(()=> bills.reduce((s,b)=>s+Number(b.amount),0));
+    drawTrend(labels, totalData, paidData, 'Total billed', 'Paid');
+
+    // category totals across the year = sum of paid amounts per category across all 12 months
+    const catTotals = {};
+    months.forEach(m=>{
+      const k = monthKey(m);
+      bills.forEach(b=>{
+        if(isPaid(b,k)) catTotals[b.category] = (catTotals[b.category]||0) + Number(b.amount);
+      });
+    });
+    drawCategoryChart(catTotals);
+  }
+
+  function drawTrend(labels, totalData, paidData, totalLabel, paidLabel){
+    const trendCtx = document.getElementById('trendChart');
+    if(trendChart) trendChart.destroy();
+    trendChart = new Chart(trendCtx, {
+      type:'line',
+      data:{ labels, datasets:[
+        { label:totalLabel, data: totalData, borderColor:'#3a4048', backgroundColor:'rgba(58,64,72,0.15)', tension:.3, fill:true, pointRadius:3 },
+        { label:paidLabel, data: paidData, borderColor:'#5c7a5e', backgroundColor:'rgba(92,122,94,0.25)', tension:.3, fill:true, pointRadius:3 }
+      ]},
+      options:{ responsive:true,
+        plugins:{ legend:{ labels:{ color:'#8a8570', font:{family:'Inter',size:11} } } },
+        scales:{ x:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } }, y:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } } }
+      }
+    });
+  }
+
+  function drawCategoryChart(catTotals){
+    const catLabels = Object.keys(catTotals).filter(k=>catTotals[k]>0);
+    const catCtx = document.getElementById('catChart');
+    if(catChart) catChart.destroy();
+    if(catLabels.length === 0){
+      catCtx.getContext('2d').clearRect(0,0,catCtx.width,catCtx.height);
+      return;
+    }
+    catChart = new Chart(catCtx, {
+      type:'doughnut',
+      data:{ labels: catLabels, datasets:[{
+        data: catLabels.map(l=>catTotals[l]),
+        backgroundColor: catLabels.map(l=>CAT_COLORS[l]||'#b8892b'),
+        borderColor:'#1c222a', borderWidth:2
+      }]},
+      options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#8a8570', font:{family:'Inter',size:11}, boxWidth:12 } } } }
+    });
+  }
+
+  // init
+  applyTheme();
+  initCurrencySelect();
+  initNotify();
+  render();
+})();
+</script>
+</body>
+</html>
