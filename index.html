@@ -3,441 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ledger — Monthly Bills</title>
+<title>Ledger — Personal Finance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
-    --ink:#151a1f;
-    --paper:#e9e4d6;
-    --paper-dim:#dcd6c4;
-    --brass:#b8892b;
-    --brass-light:#e0b563;
-    --red:#a8433a;
-    --green:#5c7a5e;
-    --line:#c9c2ac;
-    --muted:#6b6656;
-    --bg:#151a1f;
-    --card:#1c222a;
-    --card-border:#2a3038;
-    --text:#e9e4d6;
-    --text-dim:#8a8570;
+    --ink:#151a1f; --paper:#e9e4d6; --paper-dim:#dcd6c4;
+    --brass:#b8892b; --brass-light:#e0b563; --red:#a8433a; --green:#5c7a5e; --blue:#3d6b8a; --purple:#7a6ba0;
+    --line:#c9c2ac; --muted:#6b6656;
+    --bg:#151a1f; --card:#1c222a; --card-border:#2a3038; --text:#e9e4d6; --text-dim:#8a8570;
   }
-  body.light{
-    --bg:#e9e4d6;
-    --card:#f5f2e8;
-    --card-border:#d6cfb8;
-    --text:#151a1f;
-    --text-dim:#6b6656;
-  }
+  body.light{ --bg:#e9e4d6; --card:#f5f2e8; --card-border:#d6cfb8; --text:#151a1f; --text-dim:#6b6656; }
   *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    transition:background .2s,color .2s;
-  }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; transition:background .2s,color .2s; }
   ::selection{background:var(--brass);color:var(--ink);}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 100px;}
 
-  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
-
-  header.top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    margin-bottom:20px;
-    border-bottom:1px solid var(--card-border);
-    padding-bottom:20px;
-    flex-wrap:wrap;
-    gap:14px;
-  }
-  .brand-mark{
-    font-family:'Fraunces',serif;
-    font-size:14px;
-    letter-spacing:0.18em;
-    text-transform:uppercase;
-    color:var(--brass-light);
-    margin:0 0 4px;
-  }
-  h1{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:34px;
-    margin:0;
-    color:var(--text);
-  }
-  .top-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-  .month-nav{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .month-nav button{
-    background:none;
-    border:1px solid var(--card-border);
-    color:var(--text);
-    width:34px;height:34px;
-    border-radius:50%;
-    cursor:pointer;
-    font-size:16px;
-    transition:.15s;
-  }
+  header.top{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px; border-bottom:1px solid var(--card-border); padding-bottom:20px; flex-wrap:wrap; gap:14px; }
+  .brand-mark{ font-family:'Fraunces',serif; font-size:14px; letter-spacing:0.18em; text-transform:uppercase; color:var(--brass-light); margin:0 0 4px; }
+  h1{ font-family:'Fraunces',serif; font-weight:600; font-size:32px; margin:0; color:var(--text); }
+  .top-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .month-nav{ display:flex; align-items:center; gap:12px; font-family:'IBM Plex Mono',monospace; }
+  .month-nav button{ background:none; border:1px solid var(--card-border); color:var(--text); width:34px;height:34px; border-radius:50%; cursor:pointer; font-size:16px; transition:.15s; }
   .month-nav button:hover{border-color:var(--brass);color:var(--brass-light);}
   .month-label{font-size:15px;min-width:150px;text-align:center;}
-
-  .icon-toggle{
-    background:none;border:1px solid var(--card-border);color:var(--text);
-    width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;
-  }
+  .icon-toggle{ background:none; border:1px solid var(--card-border); color:var(--text); width:34px;height:34px; border-radius:50%; cursor:pointer; font-size:15px; }
   .icon-toggle:hover{border-color:var(--brass);}
 
-  .toolbar{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    align-items:center;
-    margin-bottom:22px;
+  /* bottom nav */
+  .bottom-nav{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:var(--card); border-top:1px solid var(--card-border);
+    display:flex; justify-content:space-around; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }
-  .toolbar input[type=text], .toolbar select{
-    background:var(--card);
-    border:1px solid var(--card-border);
-    color:var(--text);
-    padding:8px 12px;
-    border-radius:20px;
-    font-family:'Inter',sans-serif;
-    font-size:13px;
+  .nav-btn{
+    background:none;border:none;color:var(--text-dim);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-family:'Inter',sans-serif;font-size:11px;padding:6px 18px;border-radius:10px;
+    transition:.15s;
   }
+  .nav-btn .ic{font-size:19px;line-height:1;}
+  .nav-btn.active{color:var(--brass-light);background:rgba(184,137,43,0.12);}
+
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:22px; }
+  .toolbar input[type=text], .toolbar input[type=date], .toolbar select{ background:var(--card); border:1px solid var(--card-border); color:var(--text); padding:8px 12px; border-radius:20px; font-family:'Inter',sans-serif; font-size:13px; }
   .toolbar .spacer{flex:1;}
-  .link-btn{
-    background:none;border:1px solid var(--card-border);
-    color:var(--text-dim);padding:8px 14px;border-radius:20px;
-    cursor:pointer;font-family:'Inter',sans-serif;font-size:12.5px;
-  }
+  .toolbar label.chk{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim); }
+  .link-btn{ background:none; border:1px solid var(--card-border); color:var(--text-dim); padding:8px 14px; border-radius:20px; cursor:pointer; font-family:'Inter',sans-serif; font-size:12.5px; }
   .link-btn:hover{color:var(--brass-light);border-color:var(--brass);}
 
-  .summary-row{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:14px;
-    margin-bottom:22px;
-  }
-  .stat-card{
-    background:var(--card);
-    border:1px solid var(--card-border);
-    border-radius:10px;
-    padding:16px 18px;
-  }
-  .stat-card .label{
-    font-size:11px;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:var(--text-dim);
-    margin-bottom:6px;
-  }
-  .stat-card .value{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:22px;
-    font-weight:600;
-  }
+  .summary-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+  .summary-row.two{grid-template-columns:repeat(2,1fr);}
+  .stat-card{ background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:16px 18px; }
+  .stat-card .label{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px; }
+  .stat-card .value{ font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; }
+  .stat-card .sub{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:4px; }
   .stat-card.paid .value{color:var(--green);}
   .stat-card.due .value{color:var(--brass-light);}
   .stat-card.overdue .value{color:var(--red);}
+  .stat-card.spend .value{color:var(--blue);}
 
-  .section-title{
-    font-family:'Fraunces',serif;
-    font-size:19px;
-    margin:34px 0 14px;
-    color:var(--text);
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
+  .insights-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px; }
+  .insight-card{ background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:16px 18px; }
+  .insight-card h4{ font-family:'Fraunces',serif; font-size:14px; margin:0 0 10px; color:var(--text-dim); font-weight:600; }
+  .insight-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .insight-row input[type=number]{ width:110px; padding:6px 9px; border-radius:6px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); font-family:'IBM Plex Mono',monospace; }
+  .insight-big{ font-size:22px; font-weight:600; }
+  .insight-big.pos{color:var(--green);}
+  .insight-big.neg{color:var(--red);}
+  .mini-btn{ background:none;border:1px solid var(--card-border);color:var(--text-dim);padding:5px 10px;border-radius:14px;cursor:pointer;font-size:11px;font-family:'Inter',sans-serif; }
+  .mini-btn:hover{border-color:var(--brass);color:var(--brass-light);}
+  .goal-bar-track{height:8px;border-radius:4px;background:var(--card-border);overflow:hidden;margin:6px 0;}
+  .goal-bar-fill{height:100%;background:var(--brass);}
+
+  .section-title{ font-family:'Fraunces',serif; font-size:19px; margin:34px 0 14px; color:var(--text); display:flex; align-items:center; gap:10px; }
   .section-title .rule{flex:1;height:1px;background:var(--card-border);}
   .section-title .tiny{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-dim);font-weight:400;}
 
   .carryover-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
-  .carryover{
-    background:rgba(168,67,58,0.12);
-    border:1px solid var(--red);
-    border-radius:8px;
-    padding:10px 14px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12.5px;
-  }
+  .carryover{ background:rgba(168,67,58,0.12); border:1px solid var(--red); border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; }
   .carryover .co-name{flex:1;color:var(--text);font-family:'Inter',sans-serif;}
-  .carryover button{
-    border:1px solid var(--red);background:none;color:var(--red);
-    padding:5px 10px;border-radius:14px;cursor:pointer;font-size:11px;
-    font-family:'Inter',sans-serif;font-weight:600;
-  }
+  .carryover button{ border:1px solid var(--red);background:none;color:var(--red); padding:5px 10px;border-radius:14px;cursor:pointer;font-size:11px; font-family:'Inter',sans-serif;font-weight:600; }
   .carryover button:hover{background:var(--red);color:#fff;}
 
   .bill-list{display:flex;flex-direction:column;gap:10px;}
-
-  .bill{
-    position:relative;
-    background:var(--paper);
-    color:var(--ink);
-    border-radius:6px;
-    display:flex;
-    align-items:center;
-    gap:14px;
-    padding:14px 16px;
-    overflow:hidden;
-  }
-  .bill::before{
-    content:"";
-    position:absolute;
-    left:0;top:0;bottom:0;width:5px;
-    background:var(--cat-color,var(--brass));
-  }
+  .bill{ position:relative; background:var(--paper); color:var(--ink); border-radius:6px; display:flex; align-items:center; gap:14px; padding:14px 16px; overflow:hidden; }
+  .bill::before{ content:""; position:absolute; left:0;top:0;bottom:0;width:5px; background:var(--cat-color,var(--brass)); }
   .bill.paid{opacity:.55;}
-  .bill.over-budget::after{
-    content:"⚠ over budget";
-    position:absolute;
-    top:6px;right:12px;
-    font-size:10px;
-    font-family:'IBM Plex Mono',monospace;
-    color:var(--red);
-  }
-  .bill-main{flex:1;min-width:0;cursor:pointer;}
-  .bill-name{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    font-size:16px;
-    margin:0 0 2px;
-  }
+  .bill.archived{opacity:.5;}
+  .bill.over-budget::after{ content:"⚠ over budget"; position:absolute; top:6px;right:12px; font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--red); }
+  .bill-main{flex:1;min-width:0;cursor:pointer;display:flex;gap:10px;align-items:flex-start;}
+  .receipt-thumb{width:38px;height:38px;object-fit:cover;border-radius:5px;border:1px solid var(--line);flex-shrink:0;}
+  .bill-name{ font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin:0 0 2px; }
   .bill-name:hover{text-decoration:underline;}
-  .bill-meta{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--muted);
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  .bill-note{
-    font-family:'Inter',sans-serif;
-    font-size:12px;
-    color:var(--muted);
-    margin-top:3px;
-    font-style:italic;
-  }
-  .tag{
-    padding:1px 7px;
-    border-radius:20px;
-    background:var(--paper-dim);
-    font-size:11px;
-  }
+  .bill-meta{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .bill-note{ font-family:'Inter',sans-serif; font-size:12px; color:var(--muted); margin-top:3px; font-style:italic; }
+  .tag-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+  .tag-pill{ font-family:'Inter',sans-serif; font-size:10.5px; background:var(--paper-dim); color:var(--ink); padding:1px 7px; border-radius:10px; }
+  .tag{ padding:1px 7px; border-radius:20px; background:var(--paper-dim); font-size:11px; }
   .tag.overdue{background:var(--red);color:#fff;}
   .tag.upcoming{background:var(--brass);color:#fff;}
   .tag.completed{background:var(--green);color:#fff;}
   .tag.onetime{background:#3d5a6b;color:#fff;}
-  .debt-progress{margin-top:8px;max-width:280px;}
-  .debt-progress .bar-track{
-    height:6px;border-radius:4px;background:var(--paper-dim);overflow:hidden;
-  }
-  .debt-progress .bar-fill{height:100%;background:var(--cat-color,var(--brass));border-radius:4px;}
-  .debt-progress .bar-label{
-    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
-    margin-top:4px;display:flex;justify-content:space-between;gap:10px;
-  }
-  .bill-amount{
-    font-family:'IBM Plex Mono',monospace;
-    font-weight:600;
-    font-size:17px;
-    white-space:nowrap;
-  }
+  .tag.archived{background:#555;color:#fff;}
+  .tag.autopay{background:var(--purple);color:#fff;}
+  .debt-progress{margin-top:8px;max-width:300px;}
+  .debt-progress .bar-track{ height:6px;border-radius:4px;background:var(--paper-dim);overflow:hidden; }
+  .debt-progress .bar-fill{ height:100%;background:var(--cat-color,var(--brass));border-radius:4px; }
+  .debt-progress .bar-label{ font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted); margin-top:4px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap; }
+  .bill-amount{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:17px; white-space:nowrap; }
   .bill-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-
-  .stamp-btn{
-    border:2px solid var(--ink);
-    background:transparent;
-    color:var(--ink);
-    font-family:'IBM Plex Mono',monospace;
-    font-weight:600;
-    font-size:11px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    padding:8px 14px;
-    border-radius:4px;
-    cursor:pointer;
-    transition:.12s;
-  }
+  .stamp-btn{ border:2px solid var(--ink); background:transparent; color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer; transition:.12s; }
   .stamp-btn:hover{background:var(--ink);color:var(--paper);}
-  .stamp-btn.is-paid{
-    border-color:var(--green);
-    color:var(--green);
-    transform:rotate(-4deg);
-    font-weight:700;
-  }
+  .stamp-btn.is-paid{ border-color:var(--green); color:var(--green); transform:rotate(-4deg); font-weight:700; }
   .stamp-btn.is-paid:hover{background:var(--green);color:#fff;}
-
-  .icon-btn{
-    background:none;border:none;color:var(--muted);
-    cursor:pointer;font-size:15px;padding:4px;
-    line-height:1;
-  }
+  .icon-btn{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; padding:4px; line-height:1; }
   .icon-btn:hover{color:var(--red);}
   .icon-btn.edit:hover{color:var(--brass);}
+  .icon-btn.archive-btn:hover{color:var(--purple);}
 
-  .empty{
-    text-align:center;
-    padding:40px 20px;
-    color:var(--text-dim);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:13px;
-    border:1px dashed var(--card-border);
-    border-radius:10px;
-  }
-
-  .add-bar{
-    margin-top:16px;
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-  }
-  .add-btn{
-    background:var(--brass);
-    color:#1c130a;
-    border:none;
-    font-family:'Inter',sans-serif;
-    font-weight:600;
-    font-size:14px;
-    padding:11px 20px;
-    border-radius:24px;
-    cursor:pointer;
-    transition:.15s;
-  }
+  .empty{ text-align:center; padding:40px 20px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:13px; border:1px dashed var(--card-border); border-radius:10px; }
+  .add-bar{ margin-top:16px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+  .add-btn{ background:var(--brass); color:#1c130a; border:none; font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:11px 20px; border-radius:24px; cursor:pointer; transition:.15s; }
   .add-btn:hover{background:var(--brass-light);}
+  .add-btn.secondary{background:none;border:1px solid var(--card-border);color:var(--text);}
+  .add-btn.secondary:hover{border-color:var(--brass);color:var(--brass-light);}
 
-  .charts-row{
-    display:grid;
-    grid-template-columns:1.3fr 1fr;
-    gap:16px;
-    margin-top:14px;
-  }
-  .chart-card{
-    background:var(--card);
-    border:1px solid var(--card-border);
-    border-radius:10px;
-    padding:18px;
-  }
-  .chart-card h3{
-    font-family:'Fraunces',serif;
-    font-size:14px;
-    margin:0 0 12px;
-    color:var(--text-dim);
-    font-weight:600;
-    letter-spacing:.03em;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
+  .charts-row{ display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:14px; }
+  .chart-card{ background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:18px; }
+  .chart-card h3{ font-family:'Fraunces',serif; font-size:14px; margin:0 0 12px; color:var(--text-dim); font-weight:600; letter-spacing:.03em; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
   .budget-warning{color:var(--red);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 
-  /* modal */
-  .overlay{
-    position:fixed;inset:0;
-    background:rgba(10,12,15,.7);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:50;
-    padding:20px;
-    overflow-y:auto;
-  }
+  /* expenses */
+  .expense-row{ background:var(--paper); color:var(--ink); border-radius:6px; display:flex; align-items:center; gap:14px; padding:12px 16px; }
+  .expense-date{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); min-width:70px; }
+  .expense-cat{ font-family:'Fraunces',serif; font-weight:600; font-size:15px; }
+  .expense-note{ font-family:'Inter',sans-serif; font-size:12px; color:var(--muted); font-style:italic; }
+  .expense-amount{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:16px; white-space:nowrap; color:var(--red); }
+
+  /* savings */
+  .goal-card{ background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:18px; margin-bottom:14px; }
+  .goal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .goal-name{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:0;}
+  .goal-deadline{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .goal-amounts{ display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-dim);margin-top:8px; }
+  .goal-amounts .saved{color:var(--green);font-weight:600;}
+  .goal-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+
+  .overlay{ position:fixed;inset:0; background:rgba(10,12,15,.7); display:none; align-items:center; justify-content:center; z-index:70; padding:20px; overflow-y:auto; }
   .overlay.show{display:flex;}
-  .modal{
-    background:var(--paper);
-    color:var(--ink);
-    width:100%;max-width:420px;
-    border-radius:12px;
-    padding:26px;
-    margin:auto;
-    max-height:88vh;
-    overflow-y:auto;
-  }
-  .modal h2{
-    font-family:'Fraunces',serif;
-    margin:0 0 18px;
-    font-size:22px;
-  }
+  .modal{ background:var(--paper); color:var(--ink); width:100%;max-width:440px; border-radius:12px; padding:26px; margin:auto; max-height:88vh; overflow-y:auto; }
+  .modal h2{ font-family:'Fraunces',serif; margin:0 0 18px; font-size:22px; }
   .field{margin-bottom:14px;}
-  .field label{
-    display:block;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.08em;
-    color:var(--muted);
-    margin-bottom:5px;
-  }
-  .field input,.field select,.field textarea{
-    width:100%;
-    padding:10px 12px;
-    border:1px solid var(--line);
-    border-radius:6px;
-    background:#f5f2e8;
-    font-family:'Inter',sans-serif;
-    font-size:14px;
-    color:var(--ink);
-  }
+  .field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:5px; }
+  .field input,.field select,.field textarea{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:6px; background:#f5f2e8; font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); }
   .field textarea{resize:vertical;min-height:50px;}
   .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--brass);border-color:transparent;}
-  .modal-actions{
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    margin-top:20px;
-  }
-  .btn-secondary{
-    background:none;border:1px solid var(--line);
-    color:var(--ink);padding:9px 16px;border-radius:20px;
-    cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;
-  }
-  .btn-primary{
-    background:var(--ink);color:var(--paper);
-    border:none;padding:9px 18px;border-radius:20px;
-    cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
-  }
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+  .btn-secondary{ background:none;border:1px solid var(--line); color:var(--ink);padding:9px 16px;border-radius:20px; cursor:pointer;font-family:'Inter',sans-serif;font-size:13px; }
+  .btn-primary{ background:var(--ink);color:var(--paper); border:none;padding:9px 18px;border-radius:20px; cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600; }
+  .field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
 
   .history-list{list-style:none;padding:0;margin:0;max-height:240px;overflow-y:auto;}
-  .history-list li{
-    display:flex;justify-content:space-between;
-    padding:8px 0;border-bottom:1px solid var(--line);
-    font-family:'IBM Plex Mono',monospace;font-size:13px;
-  }
+  .history-list li{ display:flex;justify-content:space-between; padding:8px 0;border-bottom:1px solid var(--line); font-family:'IBM Plex Mono',monospace;font-size:13px; align-items:center; gap:8px;}
   .history-list li .st-paid{color:var(--green);font-weight:600;}
   .history-list li .st-unpaid{color:var(--red);}
+  .history-list li button{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;}
 
   .budget-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .budget-row label{flex:1;font-size:13px;}
   .budget-row input{width:110px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#f5f2e8;color:var(--ink);font-family:'IBM Plex Mono',monospace;}
 
-  footer.note{
-    text-align:center;
-    margin-top:40px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--text-dim);
-  }
+  footer.note{ text-align:center; margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); }
 
   @media(max-width:640px){
-    .summary-row{grid-template-columns:1fr;}
+    .summary-row, .summary-row.two{grid-template-columns:1fr;}
+    .insights-row{grid-template-columns:1fr;}
     .charts-row{grid-template-columns:1fr;}
     .bill{flex-wrap:wrap;}
+    .expense-row{flex-wrap:wrap;}
   }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
 
-  @media (prefers-reduced-motion: reduce){
-    *{transition:none !important;}
+  @media print{
+    .toolbar, .month-nav, .icon-toggle, .add-bar, .charts-row, .insights-row, header.top .top-right, footer.note, .bill-actions, .link-btn, .section-title .tiny, .bottom-nav { display:none !important; }
+    body{background:#fff;color:#000;}
+    .bill{background:#fff;border:1px solid #ccc;}
+    .stat-card{border:1px solid #ccc;background:#fff;}
   }
 </style>
 </head>
@@ -446,292 +204,429 @@
   <header class="top">
     <div>
       <p class="brand-mark">The Household Ledger</p>
-      <h1>Monthly Bills</h1>
+      <h1 id="pageTitle">Monthly Bills</h1>
     </div>
     <div class="top-right">
-      <div class="month-nav">
+      <div class="month-nav" id="monthNavWrap">
         <button id="prevMonth" aria-label="Previous month">‹</button>
         <span class="month-label" id="monthLabel"></span>
         <button id="nextMonth" aria-label="Next month">›</button>
       </div>
       <button class="icon-toggle" id="themeToggle" title="Toggle theme">◐</button>
       <button class="icon-toggle" id="notifyToggle" title="Enable due-date reminders">🔔</button>
+      <button class="icon-toggle" id="printBtn" title="Print this page">🖨</button>
     </div>
   </header>
 
-  <div class="toolbar">
-    <input type="text" id="searchInput" placeholder="Search bills…">
-    <select id="filterCategory">
-      <option value="">All categories</option>
-      <option>Rent</option><option>Utility</option><option>Subscription</option><option>Loan</option><option>Kuri</option><option>Other</option>
-    </select>
-    <select id="filterStatus">
-      <option value="">All statuses</option>
-      <option value="paid">Paid</option>
-      <option value="unpaid">Unpaid</option>
-      <option value="overdue">Overdue</option>
-    </select>
-    <select id="sortBy">
-      <option value="dueDay">Sort: due day</option>
-      <option value="amount">Sort: amount</option>
-      <option value="category">Sort: category</option>
-      <option value="name">Sort: name</option>
-    </select>
-    <div class="spacer"></div>
-    <select id="currencySelect" title="Display currency"></select>
-    <button class="link-btn" id="openBudget">Budgets</button>
-    <button class="link-btn" id="exportJson">Export JSON</button>
-    <button class="link-btn" id="exportCsv">Export CSV</button>
-    <button class="link-btn" id="importBtn">Import</button>
-    <input type="file" id="importFile" accept=".json" style="display:none;">
+  <!-- ============ BILLS PAGE ============ -->
+  <div id="page-bills" class="page active">
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="Search name, tag or note…">
+      <select id="filterCategory"><option value="">All categories</option></select>
+      <select id="filterStatus">
+        <option value="">All statuses</option>
+        <option value="paid">Paid</option>
+        <option value="unpaid">Unpaid</option>
+        <option value="overdue">Overdue</option>
+      </select>
+      <select id="sortBy">
+        <option value="dueDay">Sort: due day</option>
+        <option value="amount">Sort: amount</option>
+        <option value="category">Sort: category</option>
+        <option value="name">Sort: name</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="showArchived"> Show archived</label>
+      <div class="spacer"></div>
+      <select id="currencySelect" title="Display currency for totals"></select>
+      <button class="link-btn" id="openBudget">Budgets</button>
+      <button class="link-btn" id="exportJson">Export JSON</button>
+      <button class="link-btn" id="exportCsv">Export CSV</button>
+      <button class="link-btn" id="importBtn">Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;">
+    </div>
+
+    <div class="summary-row">
+      <div class="stat-card paid"><div class="label">Paid this month</div><div class="value" id="paidTotal">0</div><div class="sub" id="paidSub"></div></div>
+      <div class="stat-card due"><div class="label">Still due</div><div class="value" id="dueTotal">0</div><div class="sub" id="dueSub"></div></div>
+      <div class="stat-card overdue"><div class="label">Overdue</div><div class="value" id="overdueCount">0 bills</div><div class="sub" id="vsLastMonth"></div></div>
+    </div>
+
+    <div class="insights-row">
+      <div class="insight-card">
+        <h4>Monthly income &amp; leftover</h4>
+        <div class="insight-row"><span>Income this month</span><input type="number" id="incomeInput" min="0" placeholder="0"></div>
+        <div class="insight-row"><span>Total billed this month</span><span id="incomeBilled">0</span></div>
+        <div class="insight-row"><span>Leftover</span><span class="insight-big" id="leftoverValue">—</span></div>
+        <button class="mini-btn" id="addLeftoverToGoal">Send leftover to a savings goal</button>
+      </div>
+      <div class="insight-card">
+        <h4>Debt &amp; Kuri payoff summary</h4>
+        <div id="debtSummaryBody"><div class="insight-row"><span>No active debts or Kuri.</span></div></div>
+      </div>
+    </div>
+
+    <div id="carryoverSection" style="display:none;">
+      <div class="section-title">Carried over, unpaid from earlier<div class="rule"></div></div>
+      <div class="carryover-list" id="carryoverList"></div>
+    </div>
+
+    <div class="section-title">This month's bills<div class="rule"></div></div>
+    <div class="bill-list" id="billList"></div>
+    <div class="empty" id="emptyState" style="display:none;"></div>
+
+    <div class="add-bar">
+      <button class="add-btn secondary" id="openBulk">Bulk add</button>
+      <button class="add-btn" id="openAdd">+ Add bill</button>
+    </div>
+
+    <div class="section-title">Overview<span class="tiny"><button class="link-btn" id="yearToggle">Show yearly view</button></span><div class="rule"></div></div>
+    <div class="charts-row">
+      <div class="chart-card"><h3><span id="trendTitle">Paid vs. total, last 6 months</span></h3><canvas id="trendChart" height="180"></canvas></div>
+      <div class="chart-card"><h3><span id="catTitle">By category, this month</span></h3><canvas id="catChart" height="180"></canvas></div>
+    </div>
   </div>
 
-  <div class="summary-row">
-    <div class="stat-card paid">
-      <div class="label">Paid this month</div>
-      <div class="value" id="paidTotal">0</div>
+  <!-- ============ EXPENSES PAGE ============ -->
+  <div id="page-expenses" class="page">
+    <div class="toolbar">
+      <input type="text" id="expSearch" placeholder="Search category or note…">
+      <select id="expCategoryFilter"><option value="">All categories</option></select>
+      <select id="expSort">
+        <option value="date">Sort: date (newest)</option>
+        <option value="amount">Sort: amount</option>
+        <option value="category">Sort: category</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="link-btn" id="openExpBudget">Category targets</button>
+      <button class="link-btn" id="expExportCsv">Export CSV</button>
     </div>
-    <div class="stat-card due">
-      <div class="label">Still due</div>
-      <div class="value" id="dueTotal">0</div>
+
+    <div class="insights-row">
+      <div class="insight-card" style="grid-column:1/-1;">
+        <h4>Monthly spending target</h4>
+        <div class="insight-row"><span>Target for this month</span><input type="number" id="expTargetInput" min="0" placeholder="0"></div>
+        <div class="insight-row"><span>Spent so far</span><span id="expTargetSpent">0</span></div>
+        <div class="goal-bar-track"><div class="goal-bar-fill" id="expTargetBarFill" style="width:0%"></div></div>
+        <div class="insight-row"><span id="expTargetRemaining">Set a target to track progress</span></div>
+      </div>
     </div>
-    <div class="stat-card overdue">
-      <div class="label">Overdue</div>
-      <div class="value" id="overdueCount">0 bills</div>
+
+    <div class="summary-row two">
+      <div class="stat-card spend"><div class="label">Spent this month</div><div class="value" id="expTotal">0</div><div class="sub" id="expTxCount"></div></div>
+      <div class="stat-card"><div class="label">Top category</div><div class="value" id="expTopCat" style="font-size:16px;">—</div><div class="sub" id="expVsLastMonth"></div></div>
+    </div>
+
+    <div class="section-title">This month's spending<div class="rule"></div></div>
+    <div class="bill-list" id="expList"></div>
+    <div class="empty" id="expEmpty" style="display:none;">No expenses logged this month yet.</div>
+
+    <div class="add-bar">
+      <button class="add-btn" id="openAddExpense">+ Add expense</button>
+    </div>
+
+    <div class="section-title">Overview<div class="rule"></div></div>
+    <div class="charts-row">
+      <div class="chart-card"><h3>Spending, last 6 months</h3><canvas id="expTrendChart" height="180"></canvas></div>
+      <div class="chart-card"><h3>By category, this month</h3><canvas id="expCatChart" height="180"></canvas></div>
     </div>
   </div>
 
-  <div id="carryoverSection" style="display:none;">
-    <div class="section-title">Carried over, unpaid from earlier months<div class="rule"></div></div>
-    <div class="carryover-list" id="carryoverList"></div>
-  </div>
-
-  <div class="section-title">This month's bills<div class="rule"></div></div>
-  <div class="bill-list" id="billList"></div>
-  <div class="empty" id="emptyState" style="display:none;">No bills yet. Add your first one below.</div>
-
-  <div class="add-bar">
-    <button class="add-btn" id="openAdd">+ Add bill</button>
-  </div>
-
-  <div class="section-title">Overview<span class="tiny" id="yearToggleWrap"><button class="link-btn" id="yearToggle">Show yearly view</button></span><div class="rule"></div></div>
-  <div class="charts-row">
-    <div class="chart-card">
-      <h3><span id="trendTitle">Paid vs. total, last 6 months</span></h3>
-      <canvas id="trendChart" height="180"></canvas>
+  <!-- ============ SAVINGS PAGE ============ -->
+  <div id="page-savings" class="page">
+    <div class="summary-row two">
+      <div class="stat-card paid"><div class="label">Total saved across goals</div><div class="value" id="goalsSavedTotal">0</div></div>
+      <div class="stat-card due"><div class="label">Total target</div><div class="value" id="goalsTargetTotal">0</div></div>
     </div>
-    <div class="chart-card">
-      <h3><span id="catTitle">By category, this month</span></h3>
-      <canvas id="catChart" height="180"></canvas>
+
+    <div class="section-title">Your goals<div class="rule"></div></div>
+    <div id="goalList"></div>
+    <div class="empty" id="goalEmpty" style="display:none;">No savings goals yet. Add one below — e.g. Emergency fund, New bike, Trip to Wayanad.</div>
+
+    <div class="add-bar">
+      <button class="add-btn" id="openAddGoal">+ Add goal</button>
     </div>
   </div>
 
   <footer class="note">Stored locally in this browser · nothing leaves your device</footer>
 </div>
 
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-page="bills"><span class="ic">🧾</span><span>Bills</span></button>
+  <button class="nav-btn" data-page="expenses"><span class="ic">🛒</span><span>Expenses</span></button>
+  <button class="nav-btn" data-page="savings"><span class="ic">🎯</span><span>Savings</span></button>
+</nav>
+
 <!-- Add/Edit bill modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <h2 id="modalTitle">Add a bill</h2>
-    <div class="field">
-      <label for="billName">Name</label>
-      <input type="text" id="billName" placeholder="e.g. Rent, Electricity, Netflix">
+    <div class="field"><label for="billName">Name</label><input type="text" id="billName" placeholder="e.g. Rent, Electricity, Netflix"></div>
+    <div class="field-row">
+      <div class="field"><label for="billFrequency">Frequency</label>
+        <select id="billFrequency"><option value="monthly">Monthly</option><option value="once">One-time</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option></select>
+      </div>
+      <div class="field"><label for="billCategory">Category</label>
+        <select id="billCategory"><option value="Rent">Rent</option><option value="Utility">Utility</option><option value="Subscription">Subscription</option><option value="Loan">Loan / EMI</option><option value="Kuri">Kuri / Chit fund</option><option value="Other">Other</option></select>
+      </div>
     </div>
-    <div class="field">
-      <label for="billFrequency">Frequency</label>
-      <select id="billFrequency">
-        <option value="monthly">Monthly — repeats every month</option>
-        <option value="once">One-time — just this month's expense</option>
-      </select>
+    <div class="field-row">
+      <div class="field"><label for="billAmount">Amount<span id="amountHintDebt" style="text-transform:none;letter-spacing:0;display:none;"> /installment</span></label><input type="number" id="billAmount" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label for="billCurrency">Currency</label><select id="billCurrency"></select></div>
     </div>
+    <div class="field"><label for="billDueDay">Due day of month (1–31)</label><input type="number" id="billDueDay" min="1" max="31" placeholder="e.g. 5"></div>
     <div class="field">
-      <label for="billCategory">Category</label>
-      <select id="billCategory">
-        <option value="Rent">Rent</option>
-        <option value="Utility">Utility</option>
-        <option value="Subscription">Subscription</option>
-        <option value="Loan">Loan / EMI</option>
-        <option value="Kuri">Kuri / Chit fund</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <div class="field" id="debtToggleField">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="isDebtCheck" style="width:auto;">
-        This is a debt / EMI / Kuri with a fixed number of installments
-      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="isDebtCheck" style="width:auto;"> This is a debt / EMI / Kuri with a fixed number of installments</label>
+      <div class="field-hint">Works even for a one-time entry — it switches to recurring installment tracking automatically.</div>
     </div>
     <div id="debtFields" style="display:none;">
-      <div class="field">
-        <label for="totalInstallments">Total installments (months)</label>
-        <input type="number" id="totalInstallments" min="1" placeholder="e.g. 20">
+      <div class="field-row">
+        <div class="field"><label for="totalInstallments">Total installments</label><input type="number" id="totalInstallments" min="1" placeholder="e.g. 20"></div>
+        <div class="field"><label for="alreadyPaidCount">Already paid</label><input type="number" id="alreadyPaidCount" min="0" placeholder="0"></div>
       </div>
-      <div class="field">
-        <label for="alreadyPaidCount">Already paid installments (if starting mid-way)</label>
-        <input type="number" id="alreadyPaidCount" min="0" placeholder="0">
-      </div>
-      <div class="field">
-        <label for="kuriPayoutMonth">Kuri payout installment number (optional)</label>
-        <input type="number" id="kuriPayoutMonth" min="1" placeholder="e.g. 12 — the month you receive the lump sum">
-      </div>
+      <div class="field"><label for="kuriPayoutMonth">Kuri payout installment number (optional)</label><input type="number" id="kuriPayoutMonth" min="1" placeholder="e.g. 12"></div>
     </div>
-    <div class="field">
-      <label for="billAmount">Amount<span id="amountHintDebt" style="text-transform:none;letter-spacing:0;display:none;"> (per installment)</span></label>
-      <input type="number" id="billAmount" min="0" step="0.01" placeholder="0.00">
+    <div class="field-row">
+      <div class="field"><label for="reminderDays">Remind me before due</label><select id="reminderDays"><option value="1">1 day</option><option value="3" selected>3 days</option><option value="7">7 days</option></select></div>
+      <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:26px;"><input type="checkbox" id="autoPayCheck" style="width:auto;"> Auto-pay</label></div>
     </div>
-    <div class="field">
-      <label for="billDueDay">Due day of month (1–31)</label>
-      <input type="number" id="billDueDay" min="1" max="31" placeholder="e.g. 5">
-    </div>
-    <div class="field">
-      <label for="billNote">Note (optional)</label>
-      <textarea id="billNote" placeholder="e.g. paid via UPI, landlord's account ending 4521"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="cancelAdd">Cancel</button>
-      <button class="btn-primary" id="saveBill">Save bill</button>
-    </div>
+    <div class="field"><label for="billTags">Tags (comma separated, optional)</label><input type="text" id="billTags" placeholder="e.g. business, illumitrend"></div>
+    <div class="field"><label for="billNote">Note (optional)</label><textarea id="billNote" placeholder="e.g. paid via UPI"></textarea></div>
+    <div class="field"><label for="billReceipt">Receipt photo (optional)</label><input type="file" id="billReceipt" accept="image/*"><div class="field-hint" id="receiptStatus"></div></div>
+    <div class="modal-actions"><button class="btn-secondary" id="cancelAdd">Cancel</button><button class="btn-primary" id="saveBill">Save bill</button></div>
   </div>
 </div>
 
-<!-- History modal -->
+<!-- History modal (bills) -->
 <div class="overlay" id="historyOverlay">
-  <div class="modal">
-    <h2 id="historyTitle">Payment history</h2>
-    <ul class="history-list" id="historyList"></ul>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="closeHistory">Close</button>
-    </div>
+  <div class="modal"><h2 id="historyTitle">Payment history</h2><ul class="history-list" id="historyList"></ul>
+    <div class="modal-actions"><button class="btn-secondary" id="closeHistory">Close</button></div>
   </div>
 </div>
 
 <!-- Budget modal -->
 <div class="overlay" id="budgetOverlay">
+  <div class="modal"><h2>Monthly budget caps</h2><div id="budgetFields"></div>
+    <div class="modal-actions"><button class="btn-secondary" id="closeBudget">Cancel</button><button class="btn-primary" id="saveBudget">Save caps</button></div>
+  </div>
+</div>
+
+<!-- Bulk add modal -->
+<div class="overlay" id="bulkOverlay">
+  <div class="modal"><h2>Bulk add bills</h2>
+    <div class="field-hint" style="margin-bottom:8px;">One bill per line: <code>Name, Category, Amount, DueDay</code>. Category: Rent, Utility, Subscription, Loan, Kuri, Other.</div>
+    <div class="field"><textarea id="bulkText" rows="7" placeholder="Rent, Rent, 12000, 1
+Electricity, Utility, 900, 10
+Netflix, Subscription, 649, 5"></textarea></div>
+    <div class="modal-actions"><button class="btn-secondary" id="cancelBulk">Cancel</button><button class="btn-primary" id="saveBulk">Add all</button></div>
+  </div>
+</div>
+
+<!-- Expense category targets modal -->
+<div class="overlay" id="expBudgetOverlay">
   <div class="modal">
-    <h2>Monthly budget caps</h2>
-    <div id="budgetFields"></div>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="closeBudget">Cancel</button>
-      <button class="btn-primary" id="saveBudget">Save caps</button>
+    <h2>Category spending targets</h2>
+    <div class="field-hint" style="margin-bottom:10px;">Set a monthly cap per category. Only categories you've used so far are listed — add an expense with a new category first if it's missing here.</div>
+    <div id="expBudgetFields"></div>
+    <div class="modal-actions"><button class="btn-secondary" id="closeExpBudget">Cancel</button><button class="btn-primary" id="saveExpBudget">Save targets</button></div>
+  </div>
+</div>
+
+<!-- Add/Edit expense modal -->
+<div class="overlay" id="expOverlay">
+  <div class="modal">
+    <h2 id="expModalTitle">Add expense</h2>
+    <div class="field-row">
+      <div class="field"><label for="expDate">Date</label><input type="date" id="expDate"></div>
+      <div class="field"><label for="expAmount">Amount</label><input type="number" id="expAmount" min="0" step="0.01" placeholder="0.00"></div>
     </div>
+    <div class="field">
+      <label for="expCategory">Category</label>
+      <input type="text" id="expCategory" list="expCategoryList" placeholder="e.g. Groceries, Petrol, Sent to parents">
+      <datalist id="expCategoryList"></datalist>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="expCurrency">Currency</label><select id="expCurrency"></select></div>
+    </div>
+    <div class="field"><label for="expNote">Note (optional)</label><input type="text" id="expNote" placeholder="e.g. weekly grocery run"></div>
+    <div class="modal-actions"><button class="btn-secondary" id="cancelExp">Cancel</button><button class="btn-primary" id="saveExpense">Save expense</button></div>
+  </div>
+</div>
+
+<!-- Add/Edit goal modal -->
+<div class="overlay" id="goalOverlay">
+  <div class="modal">
+    <h2 id="goalModalTitle">Add savings goal</h2>
+    <div class="field"><label for="goalName">Goal name</label><input type="text" id="goalName" placeholder="e.g. Emergency fund, New laptop"></div>
+    <div class="field-row">
+      <div class="field"><label for="goalTargetInput">Target amount</label><input type="number" id="goalTargetInput" min="0" step="0.01" placeholder="0"></div>
+      <div class="field"><label for="goalSavedInput">Starting saved amount</label><input type="number" id="goalSavedInput" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="goalCurrency">Currency</label><select id="goalCurrency"></select></div>
+      <div class="field"><label for="goalDeadline">Target date (optional)</label><input type="date" id="goalDeadline"></div>
+    </div>
+    <div class="modal-actions"><button class="btn-secondary" id="cancelGoal">Cancel</button><button class="btn-primary" id="saveGoalBtn">Save goal</button></div>
+  </div>
+</div>
+
+<!-- Contribution modal -->
+<div class="overlay" id="contribOverlay">
+  <div class="modal">
+    <h2>Add contribution</h2>
+    <div class="field"><label for="contribAmount">Amount</label><input type="number" id="contribAmount" min="0" step="0.01" placeholder="0.00"></div>
+    <div class="field"><label for="contribNote">Note (optional)</label><input type="text" id="contribNote" placeholder="e.g. bonus, leftover this month"></div>
+    <div class="modal-actions"><button class="btn-secondary" id="cancelContrib">Cancel</button><button class="btn-primary" id="saveContrib">Add</button></div>
+  </div>
+</div>
+
+<!-- Goal history modal -->
+<div class="overlay" id="goalHistoryOverlay">
+  <div class="modal"><h2 id="goalHistoryTitle">Contribution history</h2><ul class="history-list" id="goalHistoryList"></ul>
+    <div class="modal-actions"><button class="btn-secondary" id="closeGoalHistory">Close</button></div>
   </div>
 </div>
 
 <script>
 (function(){
-  const STORAGE_KEY = 'ledger.bills.v2';
+  const BILLS_KEY = 'ledger.bills.v2';
   const BUDGET_KEY = 'ledger.budgets.v1';
-  const PREFS_KEY = 'ledger.prefs.v1';
+  const PREFS_KEY = 'ledger.prefs.v2';
+  const EXPENSES_KEY = 'ledger.expenses.v1';
+  const EXP_BUDGET_KEY = 'ledger.expenseBudgets.v1';
+  const GOALS_KEY = 'ledger.goals.v1';
   const CAT_COLORS = { Rent:'#b8892b', Utility:'#5c7a5e', Subscription:'#7a6ba0', Loan:'#a8433a', Kuri:'#3d6b8a', Other:'#6b6656' };
   const CURRENCIES = { INR:'₹', USD:'$', GBP:'£', EUR:'€', AED:'د.إ' };
   const CATEGORIES = ['Rent','Utility','Subscription','Loan','Kuri','Other'];
+  const EXP_PALETTE = ['#b8892b','#5c7a5e','#7a6ba0','#a8433a','#3d6b8a','#6b6656','#c0796b','#8aa07a'];
 
-  let bills = load(STORAGE_KEY, []);
+  let bills = load(BILLS_KEY, []);
   let budgets = load(BUDGET_KEY, {});
-  let prefs = load(PREFS_KEY, { theme:'dark', currency:'INR', notify:false });
-  let viewDate = new Date();
-  viewDate.setDate(1);
-  let editingId = null;
+  let prefs = load(PREFS_KEY, { theme:'dark', currency:'INR', notify:false, incomeByMonth:{}, goalTarget:0, goalSaved:0, expenseTargetByMonth:{} });
+  prefs.expenseTargetByMonth = prefs.expenseTargetByMonth || {};
+  let expenses = load(EXPENSES_KEY, []);
+  let expenseBudgets = load(EXP_BUDGET_KEY, {});
+  let goals = load(GOALS_KEY, []);
+  let viewDate = new Date(); viewDate.setDate(1);
+  let editingId = null, editingExpId = null, editingGoalId = null, contribGoalId = null;
   let yearlyView = false;
+  let currentPage = 'bills';
 
-  function load(key, fallback){
-    try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
-    catch(e){ return fallback; }
-  }
-  function saveBills(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); }
+  function load(key, fallback){ try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(e){ return fallback; } }
+  function saveBills(){ localStorage.setItem(BILLS_KEY, JSON.stringify(bills)); }
   function saveBudgets(){ localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets)); }
   function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
+  function saveExpenses(){ localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses)); }
+  function saveExpenseBudgets(){ localStorage.setItem(EXP_BUDGET_KEY, JSON.stringify(expenseBudgets)); }
+  function saveGoals(){ localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
 
   function monthKey(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
-  function fmtMoney(n){
-    const sym = CURRENCIES[prefs.currency] || '';
-    return sym + Number(n).toLocaleString('en-IN', {maximumFractionDigits:2});
+  function monthDiff(fromKey, toKey){ const [fy,fm]=fromKey.split('-').map(Number); const [ty,tm]=toKey.split('-').map(Number); return (ty-fy)*12+(tm-fm); }
+  function fmtAmount(n, currencyCode){ const sym = CURRENCIES[currencyCode] || ''; return sym + Number(n).toLocaleString('en-IN', {maximumFractionDigits:2}); }
+  function fmtMoney(n){ return fmtAmount(n, prefs.currency); }
+  function fmtMulti(byCurrencyObj){
+    const keys = Object.keys(byCurrencyObj).filter(k=>byCurrencyObj[k]);
+    if(keys.length===0) return fmtAmount(0, prefs.currency);
+    return keys.map(k=>fmtAmount(byCurrencyObj[k], k)).join('  +  ');
   }
   function fmtMonthLabel(d){ return d.toLocaleDateString('en-IN', {month:'long', year:'numeric'}); }
   function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-  function isPaid(bill, key){ return !!(bill.paidMonths && bill.paidMonths[key]); }
-  function paidCount(bill){
-    if(!bill.paidMonths) return 0;
-    return Object.values(bill.paidMonths).filter(Boolean).length;
-  }
-  function isDebtComplete(bill){
-    return bill.isDebt && bill.totalInstallments && paidCount(bill) >= Number(bill.totalInstallments);
-  }
+  function todayStr(){ const t = new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
 
-  function dueStatus(bill, key){
-    const paid = isPaid(bill, key);
-    if(paid) return 'paid';
-    const today = new Date();
-    const isCurrentMonth = key === monthKey(today);
-    if(isCurrentMonth){
-      if(today.getDate() > bill.dueDay) return 'overdue';
-      if(bill.dueDay - today.getDate() <= 3) return 'upcoming';
-    } else if (key < monthKey(today)){
-      return 'overdue';
-    }
-    return 'pending';
+  // ================= PAGE SWITCHING =================
+  const pageTitles = { bills:'Monthly Bills', expenses:'Daily Expenses', savings:'Savings Goals' };
+  function switchPage(page){
+    currentPage = page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+page).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
+    document.getElementById('pageTitle').textContent = pageTitles[page];
+    document.getElementById('monthNavWrap').style.display = (page==='savings') ? 'none' : 'flex';
+    if(page==='bills') renderBills();
+    else if(page==='expenses') renderExpenses();
+    else if(page==='savings') renderSavings();
   }
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchPage(btn.dataset.page));
+  });
 
-  // theme + currency + notify init
+  // ================= THEME / CURRENCY / NOTIFY / PRINT =================
   function applyTheme(){
     document.body.classList.toggle('light', prefs.theme==='light');
     document.getElementById('themeToggle').textContent = prefs.theme==='light' ? '◑' : '◐';
   }
-  function initCurrencySelect(){
-    const sel = document.getElementById('currencySelect');
-    sel.innerHTML = Object.keys(CURRENCIES).map(c=>`<option value="${c}">${c} ${CURRENCIES[c]}</option>`).join('');
-    sel.value = prefs.currency;
+  function initCurrencySelects(){
+    const opts = Object.keys(CURRENCIES).map(c=>`<option value="${c}">${c} ${CURRENCIES[c]}</option>`).join('');
+    document.getElementById('currencySelect').innerHTML = opts; document.getElementById('currencySelect').value = prefs.currency;
+    document.getElementById('billCurrency').innerHTML = opts;
+    document.getElementById('expCurrency').innerHTML = opts;
+    document.getElementById('goalCurrency').innerHTML = opts;
   }
-  document.getElementById('themeToggle').addEventListener('click', ()=>{
-    prefs.theme = prefs.theme==='light' ? 'dark' : 'light';
-    savePrefs(); applyTheme();
-  });
-  document.getElementById('currencySelect').addEventListener('change', (e)=>{
-    prefs.currency = e.target.value; savePrefs(); render();
-  });
+  document.getElementById('themeToggle').addEventListener('click', ()=>{ prefs.theme = prefs.theme==='light' ? 'dark' : 'light'; savePrefs(); applyTheme(); });
+  document.getElementById('currencySelect').addEventListener('change', (e)=>{ prefs.currency = e.target.value; savePrefs(); renderBills(); });
+  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 
-  function initNotify(){
-    document.getElementById('notifyToggle').style.opacity = prefs.notify ? '1':'0.5';
-  }
+  function initNotify(){ document.getElementById('notifyToggle').style.opacity = prefs.notify ? '1':'0.5'; }
   document.getElementById('notifyToggle').addEventListener('click', async ()=>{
     if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
     if(!prefs.notify){
       const perm = await Notification.requestPermission();
-      if(perm === 'granted'){
-        prefs.notify = true; savePrefs(); initNotify();
-        checkDueNotifications();
-        alert('Reminders on. Keep this tab/browser open around your due dates to get alerts.');
-      } else {
-        alert('Notification permission was not granted.');
-      }
-    } else {
-      prefs.notify = false; savePrefs(); initNotify();
-    }
+      if(perm === 'granted'){ prefs.notify = true; savePrefs(); initNotify(); checkDueNotifications(); alert('Reminders on. Keep this tab open around your due dates to get alerts.'); }
+      else alert('Notification permission was not granted.');
+    } else { prefs.notify = false; savePrefs(); initNotify(); }
   });
   function checkDueNotifications(){
     if(!prefs.notify || !('Notification' in window) || Notification.permission!=='granted') return;
-    const today = new Date();
-    const tomorrow = today.getDate()+1;
-    const key = monthKey(today);
+    const today = new Date(); const key = monthKey(today);
     bills.forEach(b=>{
-      if(!isPaid(b,key) && b.dueDay === tomorrow){
-        new Notification('Bill due tomorrow', { body: `${b.name} — ${fmtMoney(b.amount)} due on day ${b.dueDay}` });
-      }
+      if(!isDueInMonth(b,key) || isPaid(b,key)) return;
+      const days = b.reminderDays || 3;
+      if(b.dueDay - today.getDate() === days) new Notification('Bill due soon', { body: `${b.name} — ${fmtAmount(b.amount, billCurrency(b))} due on day ${b.dueDay}` });
     });
   }
 
-  // ---------- render ----------
-  function getFilteredSortedBills(key){
+  // ================= BILLS: helpers =================
+  function isPaid(bill, key){ return !!(bill.paidMonths && bill.paidMonths[key]); }
+  function paidCount(bill){ if(!bill.paidMonths) return 0; return Object.values(bill.paidMonths).filter(Boolean).length; }
+  function isDebtComplete(bill){ return bill.isDebt && bill.totalInstallments && paidCount(bill) >= Number(bill.totalInstallments); }
+  function billCurrency(bill){ return bill.currency || prefs.currency; }
+  function tagList(bill){ return (bill.tags||'').split(',').map(t=>t.trim()).filter(Boolean); }
+  function isDueInMonth(bill, key){
+    if(bill.archived) return false;
+    if(bill.isDebt) return key >= bill.createdMonth;
+    if(bill.frequency === 'once') return bill.oneTimeMonth === key;
+    if(!bill.createdMonth || key < bill.createdMonth) return false;
+    const diff = monthDiff(bill.createdMonth, key);
+    if(bill.frequency === 'quarterly') return diff % 3 === 0;
+    if(bill.frequency === 'yearly') return diff % 12 === 0;
+    return true;
+  }
+  function dueStatus(bill, key){
+    const paid = isPaid(bill, key); if(paid) return 'paid';
+    const today = new Date(); const isCurrentMonth = key === monthKey(today);
+    const remindDays = bill.reminderDays || 3;
+    if(isCurrentMonth){ if(today.getDate() > bill.dueDay) return 'overdue'; if(bill.dueDay - today.getDate() <= remindDays) return 'upcoming'; }
+    else if (key < monthKey(today)) return 'overdue';
+    return 'pending';
+  }
+  function applyAutoPay(key){
+    const todayKey = monthKey(new Date()); let changed = false;
+    bills.forEach(b=>{ if(b.autoPay && isDueInMonth(b,key) && key <= todayKey && !isPaid(b,key)){ b.paidMonths = b.paidMonths || {}; b.paidMonths[key] = true; changed = true; } });
+    if(changed) saveBills();
+  }
+  document.getElementById('filterCategory').innerHTML = '<option value="">All categories</option>' + CATEGORIES.map(c=>`<option>${c}</option>`).join('');
+
+  function getFilteredSortedBills(key, showArchived){
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const catFilter = document.getElementById('filterCategory').value;
     const statusFilter = document.getElementById('filterStatus').value;
     const sortBy = document.getElementById('sortBy').value;
-
     let list = bills.filter(b=>{
-      if(b.frequency === 'once' && b.oneTimeMonth !== key) return false;
-      if(q && !b.name.toLowerCase().includes(q)) return false;
+      if(b.archived && !showArchived) return false;
+      if(!b.archived && !isDueInMonth(b, key)) return false;
+      if(b.archived && showArchived && !isDueInMonth({...b, archived:false}, key) && b.frequency!=='once') return false;
+      if(q){ const hay = (b.name + ' ' + (b.tags||'') + ' ' + (b.note||'')).toLowerCase(); if(!hay.includes(q)) return false; }
       if(catFilter && b.category !== catFilter) return false;
-      if(statusFilter){
+      if(statusFilter && !b.archived){
         const st = dueStatus(b, key);
         if(statusFilter==='paid' && st!=='paid') return false;
         if(statusFilter==='unpaid' && st==='paid') return false;
@@ -739,7 +634,6 @@
       }
       return true;
     });
-
     list.sort((a,b)=>{
       if(sortBy==='amount') return b.amount - a.amount;
       if(sortBy==='category') return a.category.localeCompare(b.category);
@@ -748,237 +642,228 @@
     });
     return list;
   }
-
   function getCarryovers(key){
-    // for each recurring bill, check months from its createdMonth up to (but not including) key, unpaid
-    // one-time bills only ever produce a single carryover entry for their own month
     const items = [];
     bills.forEach(b=>{
-      if(b.frequency === 'once'){
-        if(b.oneTimeMonth && b.oneTimeMonth < key && !isPaid(b, b.oneTimeMonth)){
-          items.push({ bill:b, key:b.oneTimeMonth });
-        }
+      if(b.archived) return;
+      if(b.frequency === 'once' && !b.isDebt){
+        if(b.oneTimeMonth && b.oneTimeMonth < key && !isPaid(b, b.oneTimeMonth)) items.push({ bill:b, key:b.oneTimeMonth });
         return;
       }
       if(!b.createdMonth) return;
-      let cursor = new Date(b.createdMonth + '-01');
-      const target = new Date(key + '-01');
-      while(cursor < target){
-        const k = monthKey(cursor);
-        if(!isPaid(b, k)){
-          items.push({ bill:b, key:k });
-        }
-        cursor.setMonth(cursor.getMonth()+1);
-      }
+      let cursor = new Date(b.createdMonth + '-01'); const target = new Date(key + '-01');
+      while(cursor < target){ const k = monthKey(cursor); if(isDueInMonth(b, k) && !isPaid(b, k)) items.push({ bill:b, key:k }); cursor.setMonth(cursor.getMonth()+1); }
     });
     return items;
   }
 
-  function render(){
+  // ================= BILLS: render =================
+  function renderBills(){
     const key = monthKey(viewDate);
+    applyAutoPay(key);
     document.getElementById('monthLabel').textContent = fmtMonthLabel(viewDate);
+    const showArchived = document.getElementById('showArchived').checked;
 
-    // carryovers
     const carryovers = getCarryovers(key);
     const coSection = document.getElementById('carryoverSection');
-    const coList = document.getElementById('carryoverList');
-    coList.innerHTML = '';
+    const coList = document.getElementById('carryoverList'); coList.innerHTML = '';
     if(carryovers.length){
       coSection.style.display = 'block';
       carryovers.forEach(({bill,key:ck})=>{
-        const row = document.createElement('div');
-        row.className = 'carryover';
+        const row = document.createElement('div'); row.className = 'carryover';
         const md = new Date(ck+'-01');
-        row.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</span>
-          <span class="co-name">${escapeHtml(bill.name)} — ${fmtMoney(bill.amount)}</span>
-          <button data-id="${bill.id}" data-key="${ck}">Mark paid</button>`;
+        row.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</span><span class="co-name">${escapeHtml(bill.name)} — ${fmtAmount(bill.amount, billCurrency(bill))}</span><button data-id="${bill.id}" data-key="${ck}">Mark paid</button>`;
         coList.appendChild(row);
       });
-    } else {
-      coSection.style.display = 'none';
-    }
+    } else coSection.style.display = 'none';
 
-    const list = document.getElementById('billList');
-    const empty = document.getElementById('emptyState');
-    list.innerHTML = '';
-
-    const shown = getFilteredSortedBills(key);
-    empty.style.display = (bills.length===0) ? 'block' : (shown.length===0 ? 'block':'none');
-    if(bills.length===0) empty.textContent = 'No bills yet. Add your first one below.';
+    const list = document.getElementById('billList'); const empty = document.getElementById('emptyState'); list.innerHTML = '';
+    const shown = getFilteredSortedBills(key, showArchived);
+    const activeBillCount = bills.filter(b=>!b.archived).length;
+    empty.style.display = (activeBillCount===0) ? 'block' : (shown.length===0 ? 'block':'none');
+    if(activeBillCount===0) empty.textContent = 'No bills yet. Add your first one below.';
     else if(shown.length===0) empty.textContent = 'No bills match your search or filters.';
 
-    let paidTotal = 0, dueTotal = 0, overdueCount = 0;
-
-    // totals are computed over ALL bills (not filtered), carryovers add to due/overdue
+    let paidByCur = {}, dueByCur = {}, overdueCount = 0;
     bills.forEach(b=>{
-      if(b.frequency === 'once' && b.oneTimeMonth !== key) return;
-      const paid = isPaid(b, key);
-      const status = dueStatus(b, key);
-      if(paid) paidTotal += Number(b.amount);
-      else { dueTotal += Number(b.amount); if(status==='overdue') overdueCount++; }
+      if(b.archived || !isDueInMonth(b, key)) return;
+      const cur = billCurrency(b); const paid = isPaid(b, key); const status = dueStatus(b, key);
+      if(paid) paidByCur[cur] = (paidByCur[cur]||0) + Number(b.amount);
+      else { dueByCur[cur] = (dueByCur[cur]||0) + Number(b.amount); if(status==='overdue') overdueCount++; }
     });
-    carryovers.forEach(({bill})=>{ dueTotal += Number(bill.amount); overdueCount++; });
+    carryovers.forEach(({bill})=>{ const cur = billCurrency(bill); dueByCur[cur] = (dueByCur[cur]||0) + Number(bill.amount); overdueCount++; });
 
-    // category budget check for current month
     const catTotalsThisMonth = {};
-    bills.forEach(b=>{
-      if(b.frequency === 'once' && b.oneTimeMonth !== key) return;
-      catTotalsThisMonth[b.category] = (catTotalsThisMonth[b.category]||0) + Number(b.amount);
-    });
+    bills.forEach(b=>{ if(!b.archived && isDueInMonth(b, key)) catTotalsThisMonth[b.category] = (catTotalsThisMonth[b.category]||0) + Number(b.amount); });
 
     shown.forEach(bill=>{
-      const paid = isPaid(bill, key);
-      const status = dueStatus(bill, key);
+      const paid = isPaid(bill, key); const status = dueStatus(bill, key);
       const overBudget = budgets[bill.category] && catTotalsThisMonth[bill.category] > Number(budgets[bill.category]);
-
+      const debtDone = isDebtComplete(bill);
       const row = document.createElement('div');
-      row.className = 'bill' + (paid ? ' paid' : '') + (overBudget ? ' over-budget':'');
+      row.className = 'bill' + (paid ? ' paid' : '') + (overBudget ? ' over-budget':'') + (bill.archived ? ' archived':'');
       row.style.setProperty('--cat-color', CAT_COLORS[bill.category] || '#b8892b');
 
-      const debtDone = isDebtComplete(bill);
       let tagHtml = `<span class="tag">${bill.category}</span>`;
-      if(bill.frequency === 'once') tagHtml += `<span class="tag onetime">One-time</span>`;
+      if(bill.frequency !== 'monthly' && !bill.isDebt) tagHtml += `<span class="tag onetime">${bill.frequency}</span>`;
+      if(bill.autoPay) tagHtml += `<span class="tag autopay">Auto-pay</span>`;
       if(debtDone) tagHtml += `<span class="tag completed">Completed</span>`;
       else if(!paid && status==='overdue') tagHtml += `<span class="tag overdue">Overdue</span>`;
       else if(!paid && status==='upcoming') tagHtml += `<span class="tag upcoming">Due soon</span>`;
+      if(bill.archived) tagHtml += `<span class="tag archived">Archived</span>`;
 
       let debtHtml = '';
       if(bill.isDebt && bill.totalInstallments){
-        const pc = paidCount(bill);
-        const total = Number(bill.totalInstallments);
+        const pc = paidCount(bill); const total = Number(bill.totalInstallments);
         const pct = Math.min(100, Math.round((pc/total)*100));
         const remaining = Math.max(0, (total - pc)) * Number(bill.amount);
         const payoutNote = bill.kuriPayoutMonth ? ` · payout at installment ${bill.kuriPayoutMonth}` : '';
-        debtHtml = `
-          <div class="debt-progress">
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-            <div class="bar-label">
-              <span>Installment ${Math.min(pc,total)} of ${total}${payoutNote}</span>
-              <span>Remaining: ${fmtMoney(remaining)}</span>
-            </div>
-          </div>`;
+        const remainMonths = Math.max(0, total - pc); let payoffLabel = '';
+        if(remainMonths > 0){ const pd = new Date(); pd.setMonth(pd.getMonth() + remainMonths); payoffLabel = ` · payoff ~${pd.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}`; }
+        debtHtml = `<div class="debt-progress"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-label"><span>Installment ${Math.min(pc,total)} of ${total}${payoutNote}${payoffLabel}</span><span>Remaining: ${fmtAmount(remaining, billCurrency(bill))}</span></div></div>`;
       }
+      const tags = tagList(bill);
+      const tagPillsHtml = tags.length ? `<div class="tag-pills">${tags.map(t=>`<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+      const receiptHtml = bill.receipt ? `<img class="receipt-thumb" src="${bill.receipt}" alt="Receipt for ${escapeHtml(bill.name)}">` : '';
 
       row.innerHTML = `
         <div class="bill-main" data-action="history" data-id="${bill.id}">
-          <p class="bill-name">${escapeHtml(bill.name)}</p>
-          <div class="bill-meta">
-            <span>Due on ${bill.dueDay}</span>
-            ${tagHtml}
+          ${receiptHtml}
+          <div style="flex:1;min-width:0;">
+            <p class="bill-name">${escapeHtml(bill.name)}</p>
+            <div class="bill-meta"><span>Due on ${bill.dueDay}</span>${tagHtml}</div>
+            ${bill.note ? `<div class="bill-note">${escapeHtml(bill.note)}</div>` : ''}
+            ${tagPillsHtml}${debtHtml}
           </div>
-          ${bill.note ? `<div class="bill-note">${escapeHtml(bill.note)}</div>` : ''}
-          ${debtHtml}
         </div>
-        <div class="bill-amount">${fmtMoney(bill.amount)}</div>
+        <div class="bill-amount">${fmtAmount(bill.amount, billCurrency(bill))}</div>
         <div class="bill-actions">
           <button class="icon-btn edit" data-id="${bill.id}" data-action="edit" title="Edit">✎</button>
-          <button class="stamp-btn ${paid?'is-paid':''}" data-id="${bill.id}" data-action="toggle" ${debtDone && !paid ? '' : ''}>${paid ? '✓ Paid' : 'Mark paid'}</button>
+          <button class="icon-btn archive-btn" data-id="${bill.id}" data-action="archive" title="${bill.archived?'Restore':'Archive'}">${bill.archived?'♻':'📦'}</button>
+          <button class="stamp-btn ${paid?'is-paid':''}" data-id="${bill.id}" data-action="toggle">${paid ? '✓ Paid' : 'Mark paid'}</button>
           <button class="icon-btn" data-id="${bill.id}" data-action="delete" aria-label="Delete bill" title="Delete">✕</button>
-        </div>
-      `;
+        </div>`;
       list.appendChild(row);
     });
 
-    document.getElementById('paidTotal').textContent = fmtMoney(paidTotal);
-    document.getElementById('dueTotal').textContent = fmtMoney(dueTotal);
+    document.getElementById('paidTotal').textContent = fmtMulti(paidByCur);
+    document.getElementById('dueTotal').textContent = fmtMulti(dueByCur);
     document.getElementById('overdueCount').textContent = overdueCount + (overdueCount===1?' bill':' bills');
 
-    renderCharts(key);
+    const prevMonthDate = new Date(viewDate); prevMonthDate.setMonth(prevMonthDate.getMonth()-1);
+    const prevKey = monthKey(prevMonthDate);
+    const prevTotal = bills.filter(b=>!b.archived && isDueInMonth(b, prevKey) && billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0);
+    const curTotalDisplay = bills.filter(b=>!b.archived && isDueInMonth(b, key) && billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0);
+    document.getElementById('vsLastMonth').textContent = prevTotal > 0 ? `${curTotalDisplay-prevTotal>0?'+':''}${Math.round(((curTotalDisplay-prevTotal)/prevTotal)*100)}% vs last month` : '';
+
+    document.getElementById('incomeInput').value = prefs.incomeByMonth[key] || '';
+    document.getElementById('incomeBilled').textContent = fmtMoney(curTotalDisplay);
+    const income = Number(prefs.incomeByMonth[key] || 0); const leftover = income - curTotalDisplay;
+    const leftoverEl = document.getElementById('leftoverValue');
+    if(income > 0){ leftoverEl.textContent = fmtMoney(leftover); leftoverEl.className = 'insight-big ' + (leftover >= 0 ? 'pos' : 'neg'); }
+    else { leftoverEl.textContent = '—'; leftoverEl.className = 'insight-big'; }
+
+    // debt summary card
+    const activeDebts = bills.filter(b=>b.isDebt && b.totalInstallments && !isDebtComplete(b) && !b.archived);
+    const debtBody = document.getElementById('debtSummaryBody');
+    if(activeDebts.length===0){ debtBody.innerHTML = '<div class="insight-row"><span>No active debts or Kuri.</span></div>'; }
+    else {
+      debtBody.innerHTML = activeDebts.map(b=>{
+        const pc = paidCount(b); const total = Number(b.totalInstallments); const remain = total-pc;
+        const pd = new Date(); pd.setMonth(pd.getMonth()+remain);
+        return `<div class="insight-row"><span>${escapeHtml(b.name)}</span><span>${remain} left · ~${pd.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</span></div>`;
+      }).join('');
+    }
+
+    renderBillCharts(key);
     checkDueNotifications();
   }
 
   document.getElementById('billList').addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-action]');
-    if(!btn) return;
-    const id = btn.dataset.id;
-    const action = btn.dataset.action;
-    const key = monthKey(viewDate);
-    const bill = bills.find(b=>b.id===id);
-    if(!bill) return;
-
-    if(action==='toggle'){
-      bill.paidMonths = bill.paidMonths || {};
-      bill.paidMonths[key] = !bill.paidMonths[key];
-      saveBills(); render();
-    } else if(action==='delete'){
-      if(confirm(`Delete "${bill.name}"? This removes it and its payment history.`)){
-        bills = bills.filter(b=>b.id!==id);
-        saveBills(); render();
-      }
-    } else if(action==='edit'){
-      openEditModal(bill);
-    } else if(action==='history'){
-      openHistory(bill);
-    }
+    const btn = e.target.closest('[data-action]'); if(!btn) return;
+    const id = btn.dataset.id, action = btn.dataset.action, key = monthKey(viewDate);
+    const bill = bills.find(b=>b.id===id); if(!bill) return;
+    if(action==='toggle'){ bill.paidMonths = bill.paidMonths || {}; bill.paidMonths[key] = !bill.paidMonths[key]; saveBills(); renderBills(); }
+    else if(action==='delete'){ if(confirm(`Delete "${bill.name}"? This removes it and its payment history.`)){ bills = bills.filter(b=>b.id!==id); saveBills(); renderBills(); } }
+    else if(action==='edit'){ openEditModal(bill); }
+    else if(action==='history'){ openHistory(bill); }
+    else if(action==='archive'){ bill.archived = !bill.archived; saveBills(); renderBills(); }
   });
-
   document.getElementById('carryoverList').addEventListener('click', (e)=>{
-    const btn = e.target.closest('button[data-id]');
-    if(!btn) return;
-    const bill = bills.find(b=>b.id===btn.dataset.id);
-    if(!bill) return;
-    bill.paidMonths = bill.paidMonths || {};
-    bill.paidMonths[btn.dataset.key] = true;
-    saveBills(); render();
+    const btn = e.target.closest('button[data-id]'); if(!btn) return;
+    const bill = bills.find(b=>b.id===btn.dataset.id); if(!bill) return;
+    bill.paidMonths = bill.paidMonths || {}; bill.paidMonths[btn.dataset.key] = true; saveBills(); renderBills();
   });
 
-  document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); render(); });
-  document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); render(); });
-  ['searchInput'].forEach(id=>document.getElementById(id).addEventListener('input', render));
-  ['filterCategory','filterStatus','sortBy'].forEach(id=>document.getElementById(id).addEventListener('change', render));
+  document.getElementById('prevMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderBills(); renderExpenses(); });
+  document.getElementById('nextMonth').addEventListener('click', ()=>{ viewDate.setMonth(viewDate.getMonth()+1); renderBills(); renderExpenses(); });
+  ['searchInput'].forEach(id=>document.getElementById(id).addEventListener('input', renderBills));
+  ['filterCategory','filterStatus','sortBy','showArchived'].forEach(id=>document.getElementById(id).addEventListener('change', renderBills));
 
-  // ---------- add/edit modal ----------
+  document.getElementById('incomeInput').addEventListener('change', (e)=>{ prefs.incomeByMonth[monthKey(viewDate)] = parseFloat(e.target.value) || 0; savePrefs(); renderBills(); });
+  document.getElementById('addLeftoverToGoal').addEventListener('click', ()=>{
+    const key = monthKey(viewDate);
+    const income = Number(prefs.incomeByMonth[key] || 0);
+    const curTotalDisplay = bills.filter(b=>!b.archived && isDueInMonth(b, key) && billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0);
+    const leftover = income - curTotalDisplay;
+    if(leftover <= 0){ alert('No positive leftover to add yet.'); return; }
+    if(goals.length===0){ alert('Add a savings goal first, on the Savings tab.'); return; }
+    const names = goals.map((g,i)=>`${i+1}. ${g.name}`).join('\n');
+    const pick = prompt(`Send ${fmtMoney(leftover)} to which goal? Enter number:\n${names}`);
+    const idx = parseInt(pick,10)-1;
+    if(isNaN(idx) || !goals[idx]) return;
+    goals[idx].saved = Number(goals[idx].saved||0) + leftover;
+    goals[idx].contributions = goals[idx].contributions || [];
+    goals[idx].contributions.push({date: todayStr(), amount: leftover, note:'Leftover from ' + fmtMonthLabel(viewDate)});
+    saveGoals();
+    alert(`Added ${fmtMoney(leftover)} to "${goals[idx].name}".`);
+  });
+
+  // ---------- bill add/edit modal ----------
   const overlay = document.getElementById('overlay');
   document.getElementById('openAdd').addEventListener('click', ()=>{
     editingId = null;
     document.getElementById('modalTitle').textContent = 'Add a bill';
-    document.getElementById('billName').value='';
-    document.getElementById('billCategory').value='Rent';
-    document.getElementById('billAmount').value='';
-    document.getElementById('billDueDay').value='';
-    document.getElementById('billNote').value='';
-    document.getElementById('billFrequency').value = 'monthly';
-    document.getElementById('isDebtCheck').checked = false;
-    document.getElementById('totalInstallments').value = '';
-    document.getElementById('alreadyPaidCount').value = '';
-    document.getElementById('kuriPayoutMonth').value = '';
-    toggleDebtFields();
-    toggleFrequencyFields();
-    overlay.classList.add('show');
-    document.getElementById('billName').focus();
+    document.getElementById('billName').value=''; document.getElementById('billFrequency').value = 'monthly'; document.getElementById('billFrequency').disabled = false;
+    document.getElementById('billCategory').value='Rent'; document.getElementById('billAmount').value=''; document.getElementById('billCurrency').value = prefs.currency;
+    document.getElementById('billDueDay').value=''; document.getElementById('billNote').value=''; document.getElementById('billTags').value='';
+    document.getElementById('billReceipt').value=''; document.getElementById('receiptStatus').textContent=''; pendingReceipt = null;
+    document.getElementById('reminderDays').value='3'; document.getElementById('autoPayCheck').checked=false;
+    document.getElementById('isDebtCheck').checked = false; document.getElementById('totalInstallments').value = '';
+    document.getElementById('alreadyPaidCount').value = ''; document.getElementById('kuriPayoutMonth').value = '';
+    toggleDebtFields(); overlay.classList.add('show'); document.getElementById('billName').focus();
   });
   function toggleDebtFields(){
     const on = document.getElementById('isDebtCheck').checked;
     document.getElementById('debtFields').style.display = on ? 'block' : 'none';
     document.getElementById('amountHintDebt').style.display = on ? 'inline' : 'none';
-  }
-  function toggleFrequencyFields(){
-    const once = document.getElementById('billFrequency').value === 'once';
-    document.getElementById('debtToggleField').style.display = once ? 'none' : 'block';
-    if(once){
-      document.getElementById('isDebtCheck').checked = false;
-      toggleDebtFields();
-    }
+    document.getElementById('billFrequency').disabled = on;
+    if(on) document.getElementById('billFrequency').value = 'monthly';
   }
   document.getElementById('isDebtCheck').addEventListener('change', toggleDebtFields);
-  document.getElementById('billFrequency').addEventListener('change', toggleFrequencyFields);
+
+  let pendingReceipt = null;
+  document.getElementById('billReceipt').addEventListener('change', (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    if(file.size > 800*1024){ alert('Please pick an image under 800KB.'); e.target.value=''; return; }
+    const reader = new FileReader();
+    reader.onload = () => { pendingReceipt = reader.result; document.getElementById('receiptStatus').textContent = 'Attached: ' + file.name; };
+    reader.readAsDataURL(file);
+  });
 
   function openEditModal(bill){
     editingId = bill.id;
     document.getElementById('modalTitle').textContent = 'Edit bill';
-    document.getElementById('billName').value = bill.name;
-    document.getElementById('billFrequency').value = bill.frequency || 'monthly';
-    document.getElementById('billCategory').value = bill.category;
-    document.getElementById('billAmount').value = bill.amount;
-    document.getElementById('billDueDay').value = bill.dueDay;
-    document.getElementById('billNote').value = bill.note || '';
-    document.getElementById('isDebtCheck').checked = !!bill.isDebt;
-    document.getElementById('totalInstallments').value = bill.totalInstallments || '';
-    document.getElementById('alreadyPaidCount').value = '';
-    document.getElementById('kuriPayoutMonth').value = bill.kuriPayoutMonth || '';
-    toggleDebtFields();
-    toggleFrequencyFields();
-    overlay.classList.add('show');
+    document.getElementById('billName').value = bill.name; document.getElementById('billFrequency').value = bill.frequency || 'monthly';
+    document.getElementById('billCategory').value = bill.category; document.getElementById('billAmount').value = bill.amount;
+    document.getElementById('billCurrency').value = billCurrency(bill); document.getElementById('billDueDay').value = bill.dueDay;
+    document.getElementById('billNote').value = bill.note || ''; document.getElementById('billTags').value = bill.tags || '';
+    document.getElementById('billReceipt').value = ''; document.getElementById('receiptStatus').textContent = bill.receipt ? 'Receipt already attached' : '';
+    pendingReceipt = bill.receipt || null;
+    document.getElementById('reminderDays').value = String(bill.reminderDays || 3); document.getElementById('autoPayCheck').checked = !!bill.autoPay;
+    document.getElementById('isDebtCheck').checked = !!bill.isDebt; document.getElementById('totalInstallments').value = bill.totalInstallments || '';
+    document.getElementById('alreadyPaidCount').value = ''; document.getElementById('kuriPayoutMonth').value = bill.kuriPayoutMonth || '';
+    toggleDebtFields(); overlay.classList.add('show');
   }
   document.getElementById('cancelAdd').addEventListener('click', ()=> overlay.classList.remove('show'));
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
@@ -987,10 +872,15 @@
     const name = document.getElementById('billName').value.trim();
     const category = document.getElementById('billCategory').value;
     const amount = parseFloat(document.getElementById('billAmount').value);
+    const currency = document.getElementById('billCurrency').value;
     const dueDay = parseInt(document.getElementById('billDueDay').value, 10);
     const note = document.getElementById('billNote').value.trim();
-    const frequency = document.getElementById('billFrequency').value;
-    const isDebt = frequency === 'monthly' && document.getElementById('isDebtCheck').checked;
+    const tags = document.getElementById('billTags').value.trim();
+    const reminderDays = parseInt(document.getElementById('reminderDays').value, 10);
+    const autoPay = document.getElementById('autoPayCheck').checked;
+    let frequency = document.getElementById('billFrequency').value;
+    const isDebt = document.getElementById('isDebtCheck').checked;
+    if(isDebt) frequency = 'monthly';
     const totalInstallments = isDebt ? parseInt(document.getElementById('totalInstallments').value,10) : null;
     const alreadyPaidCount = isDebt ? (parseInt(document.getElementById('alreadyPaidCount').value,10) || 0) : 0;
     const kuriPayoutMonth = isDebt ? (parseInt(document.getElementById('kuriPayoutMonth').value,10) || null) : null;
@@ -1000,66 +890,67 @@
     if(isNaN(dueDay) || dueDay < 1 || dueDay > 31){ alert('Please enter a due day between 1 and 31.'); return; }
     if(isDebt && (isNaN(totalInstallments) || totalInstallments < 1)){ alert('Please enter the total number of installments.'); return; }
 
+    if(!editingId){
+      const dup = bills.find(b=>!b.archived && b.name.trim().toLowerCase()===name.toLowerCase() && Number(b.amount)===amount);
+      if(dup && !confirm(`A bill named "${dup.name}" with the same amount already exists. Add anyway?`)) return;
+    }
+
     if(editingId){
       const bill = bills.find(b=>b.id===editingId);
-      const patch = { name, category, amount, dueDay, note, isDebt, totalInstallments, kuriPayoutMonth, frequency };
+      const patch = { name, category, amount, currency, dueDay, note, tags, reminderDays, autoPay, isDebt, totalInstallments, kuriPayoutMonth, frequency, receipt: pendingReceipt };
       if(frequency === 'once' && !bill.oneTimeMonth) patch.oneTimeMonth = monthKey(viewDate);
-      if(frequency === 'monthly') patch.oneTimeMonth = null;
+      if(frequency !== 'once') patch.oneTimeMonth = null;
       Object.assign(bill, patch);
     } else {
-      const createdMonth = monthKey(viewDate);
-      const paidMonths = {};
+      const createdMonth = monthKey(viewDate); const paidMonths = {};
       if(isDebt && alreadyPaidCount > 0){
-        // backfill synthetic prior months so the progress bar reflects installments already paid before tracking started
         let cursor = new Date(createdMonth+'-01');
-        for(let i=0;i<alreadyPaidCount;i++){
-          cursor.setMonth(cursor.getMonth()-1);
-        }
-        for(let i=0;i<alreadyPaidCount;i++){
-          paidMonths[monthKey(cursor)] = true;
-          cursor.setMonth(cursor.getMonth()+1);
-        }
+        for(let i=0;i<alreadyPaidCount;i++) cursor.setMonth(cursor.getMonth()-1);
+        for(let i=0;i<alreadyPaidCount;i++){ paidMonths[monthKey(cursor)] = true; cursor.setMonth(cursor.getMonth()+1); }
       }
-      bills.push({
-        id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-        name, category, amount, dueDay, note,
-        isDebt, totalInstallments, kuriPayoutMonth,
-        frequency, oneTimeMonth: frequency === 'once' ? createdMonth : null,
-        createdMonth,
-        paidMonths
-      });
+      bills.push({ id: 'b_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), name, category, amount, currency, dueDay, note, tags,
+        reminderDays, autoPay, isDebt, totalInstallments, kuriPayoutMonth, frequency, oneTimeMonth: frequency==='once'?createdMonth:null,
+        createdMonth, paidMonths, archived:false, receipt: pendingReceipt });
     }
-    saveBills();
-    overlay.classList.remove('show');
-    render();
+    saveBills(); overlay.classList.remove('show'); renderBills();
+  });
+
+  // ---------- bulk add ----------
+  const bulkOverlay = document.getElementById('bulkOverlay');
+  document.getElementById('openBulk').addEventListener('click', ()=>{ document.getElementById('bulkText').value=''; bulkOverlay.classList.add('show'); });
+  document.getElementById('cancelBulk').addEventListener('click', ()=> bulkOverlay.classList.remove('show'));
+  bulkOverlay.addEventListener('click', (e)=>{ if(e.target===bulkOverlay) bulkOverlay.classList.remove('show'); });
+  document.getElementById('saveBulk').addEventListener('click', ()=>{
+    const lines = document.getElementById('bulkText').value.split('\n').map(l=>l.trim()).filter(Boolean);
+    let added = 0, skipped = 0; const createdMonth = monthKey(viewDate);
+    lines.forEach(line=>{
+      const parts = line.split(',').map(p=>p.trim());
+      if(parts.length < 4){ skipped++; return; }
+      const [name, category, amountStr, dueDayStr] = parts;
+      const amount = parseFloat(amountStr); const dueDay = parseInt(dueDayStr,10);
+      if(!name || !CATEGORIES.includes(category) || isNaN(amount) || isNaN(dueDay) || dueDay<1 || dueDay>31){ skipped++; return; }
+      bills.push({ id:'b_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), name, category, amount, currency:prefs.currency, dueDay, note:'', tags:'',
+        reminderDays:3, autoPay:false, isDebt:false, totalInstallments:null, kuriPayoutMonth:null, frequency:'monthly', oneTimeMonth:null, createdMonth, paidMonths:{}, archived:false, receipt:null });
+      added++;
+    });
+    saveBills(); bulkOverlay.classList.remove('show'); renderBills();
+    alert(`Added ${added} bill(s).${skipped ? ' Skipped ' + skipped + ' invalid line(s).' : ''}`);
   });
 
   // ---------- history modal ----------
   const historyOverlay = document.getElementById('historyOverlay');
   function openHistory(bill){
     document.getElementById('historyTitle').textContent = `Payment history — ${bill.name}`;
-    const listEl = document.getElementById('historyList');
-    listEl.innerHTML = '';
-    const start = bill.createdMonth ? new Date(bill.createdMonth+'-01') : new Date();
-    const now = new Date();
-    const months = [];
-    let cursor = new Date(start);
-    while(cursor <= now){
-      months.push(monthKey(cursor));
-      cursor.setMonth(cursor.getMonth()+1);
-    }
+    const listEl = document.getElementById('historyList'); listEl.innerHTML = '';
+    const start = bill.createdMonth ? new Date(bill.createdMonth+'-01') : new Date(); const now = new Date();
+    const months = []; let cursor = new Date(start);
+    while(cursor <= now){ months.push(monthKey(cursor)); cursor.setMonth(cursor.getMonth()+1); }
     months.reverse();
-    if(months.length===0){
-      listEl.innerHTML = '<li>No history yet.</li>';
-    } else {
-      months.forEach(k=>{
-        const md = new Date(k+'-01');
-        const paid = isPaid(bill,k);
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</span><span class="${paid?'st-paid':'st-unpaid'}">${paid?'Paid':'Unpaid'}</span>`;
-        listEl.appendChild(li);
-      });
-    }
+    if(months.length===0){ listEl.innerHTML = '<li>No history yet.</li>'; }
+    else { months.forEach(k=>{ if(!isDueInMonth(bill,k) && bill.frequency!=='once') return;
+      const md = new Date(k+'-01'); const paid = isPaid(bill,k); const li = document.createElement('li');
+      li.innerHTML = `<span>${md.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</span><span class="${paid?'st-paid':'st-unpaid'}">${paid?'Paid':'Unpaid'}</span>`;
+      listEl.appendChild(li); }); }
     historyOverlay.classList.add('show');
   }
   document.getElementById('closeHistory').addEventListener('click', ()=> historyOverlay.classList.remove('show'));
@@ -1068,181 +959,396 @@
   // ---------- budget modal ----------
   const budgetOverlay = document.getElementById('budgetOverlay');
   document.getElementById('openBudget').addEventListener('click', ()=>{
-    const wrap = document.getElementById('budgetFields');
-    wrap.innerHTML = CATEGORIES.map(c=>`
-      <div class="budget-row">
-        <label for="budget_${c}">${c} cap (0 = no cap)</label>
-        <input type="number" id="budget_${c}" min="0" step="0.01" value="${budgets[c]||''}">
-      </div>
-    `).join('');
+    document.getElementById('budgetFields').innerHTML = CATEGORIES.map(c=>`<div class="budget-row"><label for="budget_${c}">${c} cap (0 = no cap)</label><input type="number" id="budget_${c}" min="0" step="0.01" value="${budgets[c]||''}"></div>`).join('');
     budgetOverlay.classList.add('show');
   });
   document.getElementById('closeBudget').addEventListener('click', ()=> budgetOverlay.classList.remove('show'));
   budgetOverlay.addEventListener('click', (e)=>{ if(e.target===budgetOverlay) budgetOverlay.classList.remove('show'); });
   document.getElementById('saveBudget').addEventListener('click', ()=>{
-    CATEGORIES.forEach(c=>{
-      const v = parseFloat(document.getElementById('budget_'+c).value);
-      if(!isNaN(v) && v>0) budgets[c] = v; else delete budgets[c];
-    });
-    saveBudgets();
-    budgetOverlay.classList.remove('show');
-    render();
+    CATEGORIES.forEach(c=>{ const v = parseFloat(document.getElementById('budget_'+c).value); if(!isNaN(v) && v>0) budgets[c]=v; else delete budgets[c]; });
+    saveBudgets(); budgetOverlay.classList.remove('show'); renderBills();
   });
 
-  // ---------- export / import ----------
+  // ---------- bills export / import ----------
   document.getElementById('exportJson').addEventListener('click', ()=>{
-    const blob = new Blob([JSON.stringify({bills,budgets,prefs}, null, 2)], {type:'application/json'});
-    downloadBlob(blob, 'ledger-bills.json');
+    const blob = new Blob([JSON.stringify({bills,budgets,prefs,expenses,expenseBudgets,goals}, null, 2)], {type:'application/json'});
+    downloadBlob(blob, 'ledger-export.json');
   });
   document.getElementById('exportCsv').addEventListener('click', ()=>{
-    const rows = [['Name','Category','Amount','Due Day','Note','Created Month','Paid Months']];
-    bills.forEach(b=>{
-      const paidList = Object.keys(b.paidMonths||{}).filter(k=>b.paidMonths[k]).join(';');
-      rows.push([b.name,b.category,b.amount,b.dueDay,b.note||'',b.createdMonth||'',paidList]);
-    });
-    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-    downloadBlob(new Blob([csv],{type:'text/csv'}), 'ledger-bills.csv');
+    const rows = [['Name','Category','Amount','Currency','Due Day','Frequency','Tags','Note','Created Month','Paid Months']];
+    bills.forEach(b=>{ const paidList = Object.keys(b.paidMonths||{}).filter(k=>b.paidMonths[k]).join(';');
+      rows.push([b.name,b.category,b.amount,billCurrency(b),b.dueDay,b.frequency||'monthly',b.tags||'',b.note||'',b.createdMonth||'',paidList]); });
+    downloadBlob(new Blob([rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}), 'ledger-bills.csv');
   });
-  function downloadBlob(blob, filename){
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  function downloadBlob(blob, filename){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
   document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
+    const file = e.target.files[0]; if(!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try{
         const data = JSON.parse(reader.result);
         if(!Array.isArray(data.bills)) throw new Error('Invalid file');
         const mode = confirm('Click OK to REPLACE all current bills, or Cancel to MERGE with existing bills.');
-        if(mode){ bills = data.bills; }
-        else { bills = bills.concat(data.bills); }
+        if(mode){ bills = data.bills; } else { bills = bills.concat(data.bills); }
         if(data.budgets) budgets = data.budgets;
-        saveBills(); saveBudgets(); render();
+        if(data.expenses) expenses = mode ? data.expenses : expenses.concat(data.expenses);
+        if(data.expenseBudgets) expenseBudgets = mode ? data.expenseBudgets : Object.assign({}, expenseBudgets, data.expenseBudgets);
+        if(data.goals) goals = mode ? data.goals : goals.concat(data.goals);
+        saveBills(); saveBudgets(); saveExpenses(); saveExpenseBudgets(); saveGoals(); renderBills();
         alert('Import complete.');
-      }catch(err){
-        alert('Could not read that file. Make sure it\'s a JSON export from this app.');
-      }
+      }catch(err){ alert('Could not read that file.'); }
       document.getElementById('importFile').value = '';
     };
     reader.readAsText(file);
   });
 
-  // ---------- charts ----------
+  // ---------- bill charts ----------
   let trendChart, catChart;
-  document.getElementById('yearToggle').addEventListener('click', ()=>{
-    yearlyView = !yearlyView;
-    document.getElementById('yearToggle').textContent = yearlyView ? 'Show 6-month view' : 'Show yearly view';
-    render();
-  });
-
-  function renderCharts(currentKey){
-    if(yearlyView){
-      renderYearlyCharts();
-      return;
-    }
+  document.getElementById('yearToggle').addEventListener('click', ()=>{ yearlyView = !yearlyView; document.getElementById('yearToggle').textContent = yearlyView ? 'Show 6-month view' : 'Show yearly view'; renderBills(); });
+  function renderBillCharts(currentKey){
+    if(yearlyView){ renderYearlyCharts(); return; }
     document.getElementById('trendTitle').textContent = 'Paid vs. total, last 6 months';
     document.getElementById('catTitle').textContent = 'By category, this month';
-
-    const months = [];
-    const d = new Date(viewDate);
-    for(let i=5;i>=0;i--){ months.push(new Date(d.getFullYear(), d.getMonth()-i, 1)); }
+    const months = []; const d = new Date(viewDate);
+    for(let i=5;i>=0;i--) months.push(new Date(d.getFullYear(), d.getMonth()-i, 1));
     const labels = months.map(m=>m.toLocaleDateString('en-IN',{month:'short'}));
-    const paidData = months.map(m=>{
-      const k = monthKey(m);
-      return bills.filter(b=>isPaid(b,k)).reduce((s,b)=>s+Number(b.amount),0);
-    });
-    const totalData = months.map(()=> bills.reduce((s,b)=>s+Number(b.amount),0));
-
-    drawTrend(labels, totalData, paidData, 'Total billed', 'Paid');
-
-    const catTotals = {};
-    bills.forEach(b=>{ catTotals[b.category] = (catTotals[b.category]||0) + Number(b.amount); });
-    drawCategoryChart(catTotals);
-
-    // budget warning text
+    const paidData = months.map(m=>{ const k=monthKey(m); return bills.filter(b=>!b.archived&&isDueInMonth(b,k)&&isPaid(b,k)&&billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0); });
+    const totalData = months.map(m=>{ const k=monthKey(m); return bills.filter(b=>!b.archived&&isDueInMonth(b,k)&&billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0); });
+    drawTrend('trendChart', labels, [{label:'Total billed',data:totalData,color:'#3a4048',fill:'rgba(58,64,72,0.15)'},{label:'Paid',data:paidData,color:'#5c7a5e',fill:'rgba(92,122,94,0.25)'}], 1);
+    const key = currentKey; const catTotals = {};
+    bills.forEach(b=>{ if(!b.archived && isDueInMonth(b,key)) catTotals[b.category] = (catTotals[b.category]||0) + Number(b.amount); });
+    drawCategoryChart('catChart', catTotals, CAT_COLORS, 1);
     const warnCats = Object.keys(catTotals).filter(c=>budgets[c] && catTotals[c] > budgets[c]);
-    let warnEl = document.getElementById('catTitle').parentElement.querySelector('.budget-warning');
-    if(warnEl) warnEl.remove();
-    if(warnCats.length){
-      const span = document.createElement('span');
-      span.className = 'budget-warning';
-      span.textContent = `⚠ over cap: ${warnCats.join(', ')}`;
-      document.getElementById('catTitle').parentElement.appendChild(span);
-    }
+    let warnEl = document.getElementById('catTitle').parentElement.querySelector('.budget-warning'); if(warnEl) warnEl.remove();
+    if(warnCats.length){ const span = document.createElement('span'); span.className='budget-warning'; span.textContent=`⚠ over cap: ${warnCats.join(', ')}`; document.getElementById('catTitle').parentElement.appendChild(span); }
   }
-
   function renderYearlyCharts(){
     document.getElementById('trendTitle').textContent = 'Paid vs. total, this year by month';
     document.getElementById('catTitle').textContent = 'By category, this year';
-
-    const year = viewDate.getFullYear();
-    const months = [];
-    for(let m=0;m<12;m++){ months.push(new Date(year, m, 1)); }
+    const year = viewDate.getFullYear(); const months = []; for(let m=0;m<12;m++) months.push(new Date(year,m,1));
     const labels = months.map(m=>m.toLocaleDateString('en-IN',{month:'short'}));
-    const paidData = months.map(m=>{
-      const k = monthKey(m);
-      return bills.filter(b=>isPaid(b,k)).reduce((s,b)=>s+Number(b.amount),0);
-    });
-    const totalData = months.map(()=> bills.reduce((s,b)=>s+Number(b.amount),0));
-    drawTrend(labels, totalData, paidData, 'Total billed', 'Paid');
-
-    // category totals across the year = sum of paid amounts per category across all 12 months
+    const paidData = months.map(m=>{ const k=monthKey(m); return bills.filter(b=>!b.archived&&isDueInMonth(b,k)&&isPaid(b,k)&&billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0); });
+    const totalData = months.map(m=>{ const k=monthKey(m); return bills.filter(b=>!b.archived&&isDueInMonth(b,k)&&billCurrency(b)===prefs.currency).reduce((s,b)=>s+Number(b.amount),0); });
+    drawTrend('trendChart', labels, [{label:'Total billed',data:totalData,color:'#3a4048',fill:'rgba(58,64,72,0.15)'},{label:'Paid',data:paidData,color:'#5c7a5e',fill:'rgba(92,122,94,0.25)'}], 1);
     const catTotals = {};
-    months.forEach(m=>{
-      const k = monthKey(m);
-      bills.forEach(b=>{
-        if(isPaid(b,k)) catTotals[b.category] = (catTotals[b.category]||0) + Number(b.amount);
-      });
-    });
-    drawCategoryChart(catTotals);
+    months.forEach(m=>{ const k=monthKey(m); bills.forEach(b=>{ if(!b.archived && isDueInMonth(b,k) && isPaid(b,k)) catTotals[b.category]=(catTotals[b.category]||0)+Number(b.amount); }); });
+    drawCategoryChart('catChart', catTotals, CAT_COLORS, 1);
   }
 
-  function drawTrend(labels, totalData, paidData, totalLabel, paidLabel){
-    const trendCtx = document.getElementById('trendChart');
-    if(trendChart) trendChart.destroy();
-    trendChart = new Chart(trendCtx, {
-      type:'line',
-      data:{ labels, datasets:[
-        { label:totalLabel, data: totalData, borderColor:'#3a4048', backgroundColor:'rgba(58,64,72,0.15)', tension:.3, fill:true, pointRadius:3 },
-        { label:paidLabel, data: paidData, borderColor:'#5c7a5e', backgroundColor:'rgba(92,122,94,0.25)', tension:.3, fill:true, pointRadius:3 }
-      ]},
-      options:{ responsive:true,
-        plugins:{ legend:{ labels:{ color:'#8a8570', font:{family:'Inter',size:11} } } },
-        scales:{ x:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } }, y:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } } }
-      }
-    });
+  // shared chart drawing helpers
+  const chartInstances = {};
+  function drawTrend(canvasId, labels, datasets){
+    const ctx = document.getElementById(canvasId);
+    if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+    chartInstances[canvasId] = new Chart(ctx, { type:'line', data:{ labels, datasets: datasets.map(ds=>({ label:ds.label, data:ds.data, borderColor:ds.color, backgroundColor:ds.fill, tension:.3, fill:true, pointRadius:3 })) },
+      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#8a8570', font:{family:'Inter',size:11} } } }, scales:{ x:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } }, y:{ ticks:{ color:'#8a8570' }, grid:{ color:'#2a3038' } } } } });
+  }
+  function drawCategoryChart(canvasId, catTotals, palette){
+    const labels = Object.keys(catTotals).filter(k=>catTotals[k]>0);
+    const ctx = document.getElementById(canvasId);
+    if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+    if(labels.length===0){ ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height); return; }
+    const colorFor = (l,i)=> (typeof palette==='object' && !Array.isArray(palette)) ? (palette[l]||'#b8892b') : palette[i % palette.length];
+    chartInstances[canvasId] = new Chart(ctx, { type:'doughnut', data:{ labels, datasets:[{ data: labels.map(l=>catTotals[l]), backgroundColor: labels.map((l,i)=>colorFor(l,i)), borderColor:'#1c222a', borderWidth:2 }] },
+      options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#8a8570', font:{family:'Inter',size:11}, boxWidth:12 } } } } });
   }
 
-  function drawCategoryChart(catTotals){
-    const catLabels = Object.keys(catTotals).filter(k=>catTotals[k]>0);
-    const catCtx = document.getElementById('catChart');
-    if(catChart) catChart.destroy();
-    if(catLabels.length === 0){
-      catCtx.getContext('2d').clearRect(0,0,catCtx.width,catCtx.height);
-      return;
+  // ================= EXPENSES =================
+  function expenseCategories(){ return [...new Set(expenses.map(e=>e.category).filter(Boolean))].sort(); }
+  function refreshExpenseCategoryUI(){
+    const cats = expenseCategories();
+    document.getElementById('expCategoryList').innerHTML = cats.map(c=>`<option value="${escapeHtml(c)}">`).join('');
+    document.getElementById('expCategoryFilter').innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option>${escapeHtml(c)}</option>`).join('');
+  }
+
+  function getFilteredSortedExpenses(key){
+    const q = document.getElementById('expSearch').value.trim().toLowerCase();
+    const catFilter = document.getElementById('expCategoryFilter').value;
+    const sortBy = document.getElementById('expSort').value;
+    let list = expenses.filter(e=>{
+      if(!e.date || e.date.slice(0,7) !== key) return false;
+      if(q){ const hay = (e.category+' '+(e.note||'')).toLowerCase(); if(!hay.includes(q)) return false; }
+      if(catFilter && e.category !== catFilter) return false;
+      return true;
+    });
+    list.sort((a,b)=>{
+      if(sortBy==='amount') return b.amount - a.amount;
+      if(sortBy==='category') return a.category.localeCompare(b.category);
+      return b.date.localeCompare(a.date);
+    });
+    return list;
+  }
+
+  function renderExpenses(){
+    refreshExpenseCategoryUI();
+    const key = monthKey(viewDate);
+    const list = document.getElementById('expList'); const empty = document.getElementById('expEmpty'); list.innerHTML='';
+    const monthExpenses = expenses.filter(e=>e.date && e.date.slice(0,7)===key);
+    const shown = getFilteredSortedExpenses(key);
+    empty.style.display = monthExpenses.length===0 ? 'block' : (shown.length===0 ? 'block':'none');
+    if(monthExpenses.length===0) empty.textContent = 'No expenses logged this month yet.';
+    else if(shown.length===0) empty.textContent = 'No expenses match your search or filters.';
+
+    let byCur = {}; const catTotals = {};
+    monthExpenses.forEach(e=>{ byCur[e.currency||prefs.currency] = (byCur[e.currency||prefs.currency]||0) + Number(e.amount); catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
+
+    shown.forEach(exp=>{
+      const row = document.createElement('div'); row.className='expense-row';
+      const catCap = expenseBudgets[exp.category];
+      const overCap = catCap && catTotals[exp.category] > Number(catCap);
+      if(overCap) row.style.boxShadow = 'inset 3px 0 0 var(--red)';
+      row.innerHTML = `
+        <div class="expense-date">${new Date(exp.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div>
+        <div style="flex:1;min-width:0;">
+          <p class="expense-cat">${escapeHtml(exp.category)}${overCap ? ' <span class="tag overdue" style="font-size:9px;">over target</span>' : ''}</p>
+          ${exp.note ? `<div class="expense-note">${escapeHtml(exp.note)}</div>` : ''}
+        </div>
+        <div class="expense-amount">${fmtAmount(exp.amount, exp.currency||prefs.currency)}</div>
+        <div class="bill-actions">
+          <button class="icon-btn edit" data-id="${exp.id}" data-action="edit" title="Edit">✎</button>
+          <button class="icon-btn" data-id="${exp.id}" data-action="delete" title="Delete">✕</button>
+        </div>`;
+      list.appendChild(row);
+    });
+
+    document.getElementById('expTotal').textContent = fmtMulti(byCur);
+    document.getElementById('expTxCount').textContent = monthExpenses.length + (monthExpenses.length===1?' entry':' entries');
+    const topCat = Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a])[0];
+    document.getElementById('expTopCat').textContent = topCat || '—';
+
+    const prevMonthDate = new Date(viewDate); prevMonthDate.setMonth(prevMonthDate.getMonth()-1);
+    const prevKey = monthKey(prevMonthDate);
+    const prevTotal = expenses.filter(e=>e.date && e.date.slice(0,7)===prevKey && (e.currency||prefs.currency)===prefs.currency).reduce((s,e)=>s+Number(e.amount),0);
+    const curTotal = expenses.filter(e=>e.date && e.date.slice(0,7)===key && (e.currency||prefs.currency)===prefs.currency).reduce((s,e)=>s+Number(e.amount),0);
+    document.getElementById('expVsLastMonth').textContent = prevTotal>0 ? `${curTotal-prevTotal>0?'+':''}${Math.round(((curTotal-prevTotal)/prevTotal)*100)}% vs last month` : '';
+
+    // monthly spending target
+    document.getElementById('expTargetInput').value = prefs.expenseTargetByMonth[key] || '';
+    const target = Number(prefs.expenseTargetByMonth[key] || 0);
+    const spentDisplay = monthExpenses.filter(e=>(e.currency||prefs.currency)===prefs.currency).reduce((s,e)=>s+Number(e.amount),0);
+    document.getElementById('expTargetSpent').textContent = fmtMoney(spentDisplay);
+    const barEl = document.getElementById('expTargetBarFill');
+    const remEl = document.getElementById('expTargetRemaining');
+    if(target > 0){
+      const pct = Math.min(100, Math.round((spentDisplay/target)*100));
+      barEl.style.width = pct + '%';
+      barEl.style.background = spentDisplay > target ? 'var(--red)' : 'var(--brass)';
+      remEl.textContent = spentDisplay > target
+        ? `⚠ Over target by ${fmtMoney(spentDisplay - target)}`
+        : `${fmtMoney(target - spentDisplay)} left of ${fmtMoney(target)} target`;
+    } else {
+      barEl.style.width = '0%';
+      remEl.textContent = 'Set a target to track progress';
     }
-    catChart = new Chart(catCtx, {
-      type:'doughnut',
-      data:{ labels: catLabels, datasets:[{
-        data: catLabels.map(l=>catTotals[l]),
-        backgroundColor: catLabels.map(l=>CAT_COLORS[l]||'#b8892b'),
-        borderColor:'#1c222a', borderWidth:2
-      }]},
-      options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#8a8570', font:{family:'Inter',size:11}, boxWidth:12 } } } }
+
+    renderExpenseCharts(key, catTotals);
+  }
+
+  document.getElementById('expList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]'); if(!btn) return;
+    const exp = expenses.find(x=>x.id===btn.dataset.id); if(!exp) return;
+    if(btn.dataset.action==='delete'){ if(confirm('Delete this expense?')){ expenses = expenses.filter(x=>x.id!==exp.id); saveExpenses(); renderExpenses(); } }
+    else if(btn.dataset.action==='edit'){ openEditExpense(exp); }
+  });
+  ['expSearch'].forEach(id=>document.getElementById(id).addEventListener('input', renderExpenses));
+  ['expCategoryFilter','expSort'].forEach(id=>document.getElementById(id).addEventListener('change', renderExpenses));
+  document.getElementById('expTargetInput').addEventListener('change', (e)=>{
+    prefs.expenseTargetByMonth[monthKey(viewDate)] = parseFloat(e.target.value) || 0;
+    savePrefs(); renderExpenses();
+  });
+
+  const expBudgetOverlay = document.getElementById('expBudgetOverlay');
+  document.getElementById('openExpBudget').addEventListener('click', ()=>{
+    const cats = expenseCategories();
+    const wrap = document.getElementById('expBudgetFields');
+    if(cats.length===0){ wrap.innerHTML = '<div class="field-hint">No expense categories logged yet.</div>'; }
+    else {
+      wrap.innerHTML = cats.map(c=>`<div class="budget-row"><label for="expbudget_${escapeHtml(c)}">${escapeHtml(c)} cap (0 = no cap)</label><input type="number" id="expbudget_${escapeHtml(c)}" data-cat="${escapeHtml(c)}" min="0" step="0.01" value="${expenseBudgets[c]||''}"></div>`).join('');
+    }
+    expBudgetOverlay.classList.add('show');
+  });
+  document.getElementById('closeExpBudget').addEventListener('click', ()=> expBudgetOverlay.classList.remove('show'));
+  expBudgetOverlay.addEventListener('click', (e)=>{ if(e.target===expBudgetOverlay) expBudgetOverlay.classList.remove('show'); });
+  document.getElementById('saveExpBudget').addEventListener('click', ()=>{
+    expenseCategories().forEach(c=>{
+      const input = document.getElementById('expbudget_'+c);
+      if(!input) return;
+      const v = parseFloat(input.value);
+      if(!isNaN(v) && v>0) expenseBudgets[c] = v; else delete expenseBudgets[c];
+    });
+    saveExpenseBudgets(); expBudgetOverlay.classList.remove('show'); renderExpenses();
+  });
+
+  const expOverlay = document.getElementById('expOverlay');
+  document.getElementById('openAddExpense').addEventListener('click', ()=>{
+    editingExpId = null;
+    document.getElementById('expModalTitle').textContent = 'Add expense';
+    document.getElementById('expDate').value = todayStr();
+    document.getElementById('expAmount').value = ''; document.getElementById('expCategory').value = '';
+    document.getElementById('expCurrency').value = prefs.currency; document.getElementById('expNote').value = '';
+    refreshExpenseCategoryUI();
+    expOverlay.classList.add('show'); document.getElementById('expCategory').focus();
+  });
+  function openEditExpense(exp){
+    editingExpId = exp.id;
+    document.getElementById('expModalTitle').textContent = 'Edit expense';
+    document.getElementById('expDate').value = exp.date; document.getElementById('expAmount').value = exp.amount;
+    document.getElementById('expCategory').value = exp.category; document.getElementById('expCurrency').value = exp.currency||prefs.currency;
+    document.getElementById('expNote').value = exp.note || '';
+    refreshExpenseCategoryUI();
+    expOverlay.classList.add('show');
+  }
+  document.getElementById('cancelExp').addEventListener('click', ()=> expOverlay.classList.remove('show'));
+  expOverlay.addEventListener('click', (e)=>{ if(e.target===expOverlay) expOverlay.classList.remove('show'); });
+  document.getElementById('saveExpense').addEventListener('click', ()=>{
+    const date = document.getElementById('expDate').value;
+    const amount = parseFloat(document.getElementById('expAmount').value);
+    const category = document.getElementById('expCategory').value.trim();
+    const currency = document.getElementById('expCurrency').value;
+    const note = document.getElementById('expNote').value.trim();
+    if(!date){ alert('Please pick a date.'); return; }
+    if(!category){ alert('Please enter a category.'); return; }
+    if(isNaN(amount) || amount <= 0){ alert('Please enter a valid amount.'); return; }
+    if(editingExpId){ const exp = expenses.find(x=>x.id===editingExpId); Object.assign(exp, { date, amount, category, currency, note }); }
+    else { expenses.push({ id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, amount, category, currency, note }); }
+    saveExpenses(); expOverlay.classList.remove('show'); renderExpenses();
+  });
+
+  document.getElementById('expExportCsv').addEventListener('click', ()=>{
+    const rows = [['Date','Category','Amount','Currency','Note']];
+    expenses.forEach(e=> rows.push([e.date,e.category,e.amount,e.currency||prefs.currency,e.note||'']));
+    downloadBlob(new Blob([rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}), 'ledger-expenses.csv');
+  });
+
+  function renderExpenseCharts(currentKey, catTotalsThisMonth){
+    const months = []; const d = new Date(viewDate);
+    for(let i=5;i>=0;i--) months.push(new Date(d.getFullYear(), d.getMonth()-i, 1));
+    const labels = months.map(m=>m.toLocaleDateString('en-IN',{month:'short'}));
+    const totals = months.map(m=>{ const k=monthKey(m); return expenses.filter(e=>e.date&&e.date.slice(0,7)===k&&(e.currency||prefs.currency)===prefs.currency).reduce((s,e)=>s+Number(e.amount),0); });
+    drawTrend('expTrendChart', labels, [{label:'Spent', data: totals, color:'#a8433a', fill:'rgba(168,67,58,0.18)'}]);
+    drawCategoryChart('expCatChart', catTotalsThisMonth, EXP_PALETTE);
+  }
+
+  // ================= SAVINGS =================
+  function goalCurrency(g){ return g.currency || prefs.currency; }
+  function renderSavings(){
+    const list = document.getElementById('goalList'); const empty = document.getElementById('goalEmpty'); list.innerHTML='';
+    empty.style.display = goals.length===0 ? 'block' : 'none';
+
+    let savedByCur = {}, targetByCur = {};
+    goals.forEach(g=>{ const cur = goalCurrency(g); savedByCur[cur]=(savedByCur[cur]||0)+Number(g.saved||0); targetByCur[cur]=(targetByCur[cur]||0)+Number(g.target||0); });
+    document.getElementById('goalsSavedTotal').textContent = fmtMulti(savedByCur);
+    document.getElementById('goalsTargetTotal').textContent = fmtMulti(targetByCur);
+
+    goals.forEach(g=>{
+      const pct = g.target > 0 ? Math.min(100, Math.round((g.saved/g.target)*100)) : 0;
+      const card = document.createElement('div'); card.className='goal-card';
+      let deadlineHtml = '';
+      if(g.deadline){
+        const dl = new Date(g.deadline+'T00:00:00'); const daysLeft = Math.ceil((dl - new Date())/(1000*60*60*24));
+        deadlineHtml = `<div class="goal-deadline">Target date: ${dl.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${daysLeft>=0 ? ` · ${daysLeft} days left` : ' · past due'}</div>`;
+      }
+      card.innerHTML = `
+        <div class="goal-top">
+          <div><p class="goal-name">${escapeHtml(g.name)}</p>${deadlineHtml}</div>
+          <div class="bill-actions">
+            <button class="icon-btn edit" data-id="${g.id}" data-action="editGoal" title="Edit">✎</button>
+            <button class="icon-btn" data-id="${g.id}" data-action="deleteGoal" title="Delete">✕</button>
+          </div>
+        </div>
+        <div class="goal-bar-track"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+        <div class="goal-amounts"><span class="saved">${fmtAmount(g.saved, goalCurrency(g))} saved</span><span>${pct}% of ${fmtAmount(g.target, goalCurrency(g))}</span></div>
+        <div class="goal-actions">
+          <button class="mini-btn" data-id="${g.id}" data-action="contribute">+ Add contribution</button>
+          <button class="mini-btn" data-id="${g.id}" data-action="goalHistory">View history</button>
+        </div>`;
+      list.appendChild(card);
     });
   }
 
-  // init
+  document.getElementById('goalList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]'); if(!btn) return;
+    const g = goals.find(x=>x.id===btn.dataset.id); if(!g) return;
+    if(btn.dataset.action==='deleteGoal'){ if(confirm(`Delete goal "${g.name}"? This removes its contribution history too.`)){ goals = goals.filter(x=>x.id!==g.id); saveGoals(); renderSavings(); } }
+    else if(btn.dataset.action==='editGoal'){ openEditGoal(g); }
+    else if(btn.dataset.action==='contribute'){ contribGoalId = g.id; document.getElementById('contribAmount').value=''; document.getElementById('contribNote').value=''; document.getElementById('contribOverlay').classList.add('show'); }
+    else if(btn.dataset.action==='goalHistory'){ openGoalHistory(g); }
+  });
+
+  const goalOverlay = document.getElementById('goalOverlay');
+  document.getElementById('openAddGoal').addEventListener('click', ()=>{
+    editingGoalId = null;
+    document.getElementById('goalModalTitle').textContent = 'Add savings goal';
+    document.getElementById('goalName').value=''; document.getElementById('goalTargetInput').value='';
+    document.getElementById('goalSavedInput').value=''; document.getElementById('goalCurrency').value = prefs.currency;
+    document.getElementById('goalDeadline').value='';
+    goalOverlay.classList.add('show'); document.getElementById('goalName').focus();
+  });
+  function openEditGoal(g){
+    editingGoalId = g.id;
+    document.getElementById('goalModalTitle').textContent = 'Edit goal';
+    document.getElementById('goalName').value = g.name; document.getElementById('goalTargetInput').value = g.target;
+    document.getElementById('goalSavedInput').value = g.saved; document.getElementById('goalCurrency').value = goalCurrency(g);
+    document.getElementById('goalDeadline').value = g.deadline || '';
+    goalOverlay.classList.add('show');
+  }
+  document.getElementById('cancelGoal').addEventListener('click', ()=> goalOverlay.classList.remove('show'));
+  goalOverlay.addEventListener('click', (e)=>{ if(e.target===goalOverlay) goalOverlay.classList.remove('show'); });
+  document.getElementById('saveGoalBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('goalName').value.trim();
+    const target = parseFloat(document.getElementById('goalTargetInput').value);
+    const saved = parseFloat(document.getElementById('goalSavedInput').value) || 0;
+    const currency = document.getElementById('goalCurrency').value;
+    const deadline = document.getElementById('goalDeadline').value || null;
+    if(!name){ alert('Please name your goal.'); return; }
+    if(isNaN(target) || target <= 0){ alert('Please enter a valid target amount.'); return; }
+    if(editingGoalId){ const g = goals.find(x=>x.id===editingGoalId); Object.assign(g, { name, target, saved, currency, deadline }); }
+    else { goals.push({ id:'g_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), name, target, saved, currency, deadline, contributions: saved>0 ? [{date:todayStr(), amount:saved, note:'Starting balance'}] : [] }); }
+    saveGoals(); goalOverlay.classList.remove('show'); renderSavings();
+  });
+
+  const contribOverlay = document.getElementById('contribOverlay');
+  document.getElementById('cancelContrib').addEventListener('click', ()=> contribOverlay.classList.remove('show'));
+  contribOverlay.addEventListener('click', (e)=>{ if(e.target===contribOverlay) contribOverlay.classList.remove('show'); });
+  document.getElementById('saveContrib').addEventListener('click', ()=>{
+    const amount = parseFloat(document.getElementById('contribAmount').value);
+    const note = document.getElementById('contribNote').value.trim();
+    if(isNaN(amount) || amount <= 0){ alert('Please enter a valid amount.'); return; }
+    const g = goals.find(x=>x.id===contribGoalId); if(!g) return;
+    g.saved = Number(g.saved||0) + amount; g.contributions = g.contributions || [];
+    g.contributions.push({ date: todayStr(), amount, note });
+    saveGoals(); contribOverlay.classList.remove('show'); renderSavings();
+  });
+
+  const goalHistoryOverlay = document.getElementById('goalHistoryOverlay');
+  function openGoalHistory(g){
+    document.getElementById('goalHistoryTitle').textContent = `Contributions — ${g.name}`;
+    const listEl = document.getElementById('goalHistoryList'); listEl.innerHTML='';
+    const contribs = (g.contributions||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+    if(contribs.length===0){ listEl.innerHTML = '<li>No contributions logged yet.</li>'; }
+    else contribs.forEach((c, idxRev)=>{
+      const realIdx = g.contributions.indexOf(c);
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${new Date(c.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} — ${fmtAmount(c.amount, goalCurrency(g))}${c.note?' · '+escapeHtml(c.note):''}</span><button data-idx="${realIdx}">Undo</button>`;
+      listEl.appendChild(li);
+    });
+    listEl.onclick = (e)=>{
+      const btn = e.target.closest('button[data-idx]'); if(!btn) return;
+      const idx = parseInt(btn.dataset.idx,10);
+      const removed = g.contributions.splice(idx,1)[0];
+      if(removed){ g.saved = Math.max(0, Number(g.saved||0) - Number(removed.amount)); saveGoals(); renderSavings(); openGoalHistory(g); }
+    };
+    goalHistoryOverlay.classList.add('show');
+  }
+  document.getElementById('closeGoalHistory').addEventListener('click', ()=> goalHistoryOverlay.classList.remove('show'));
+  goalHistoryOverlay.addEventListener('click', (e)=>{ if(e.target===goalHistoryOverlay) goalHistoryOverlay.classList.remove('show'); });
+
+  // ================= INIT =================
   applyTheme();
-  initCurrencySelect();
+  initCurrencySelects();
   initNotify();
-  render();
+  switchPage('bills');
 })();
 </script>
 </body>
