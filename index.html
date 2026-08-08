@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --ink:#151a1f; --paper:#e9e4d6; --paper-dim:#dcd6c4;
@@ -170,6 +171,51 @@
   .btn-primary{ background:var(--ink);color:var(--paper); border:none;padding:9px 18px;border-radius:20px; cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600; }
   .field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
 
+  .auth-tabs{display:flex;gap:6px;margin-bottom:18px;}
+  .auth-tab{flex:1;background:none;border:1px solid var(--line);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;}
+  .auth-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .auth-msg{font-size:12.5px;margin-top:10px;padding:8px 10px;border-radius:6px;display:none;font-family:'Inter',sans-serif;}
+  .auth-msg.show{display:block;}
+  .auth-msg.error{background:rgba(168,67,58,0.15);color:var(--red);}
+  .auth-msg.ok{background:rgba(92,122,94,0.15);color:var(--green);}
+  .account-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;padding:10px 12px;background:var(--paper-dim);border-radius:8px;font-size:13px;}
+  .sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;}
+  .sync-dot.synced{background:var(--green);}
+  .sync-dot.syncing{background:var(--brass);}
+  .sync-dot.error{background:var(--red);}
+  #accountBtn .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:4px;}
+  #accountBtn .dot.on{background:var(--green);}
+
+  .lock-screen{ position:fixed; inset:0; z-index:200; background:var(--bg); display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px; padding:20px; }
+  .lock-screen.show{display:flex;}
+  .lock-icon{font-size:34px;}
+  .lock-title{font-family:'Fraunces',serif;font-size:22px;color:var(--text);margin:0;}
+  .pin-dots{display:flex;gap:14px;margin:4px 0;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--card-border);transition:.1s;}
+  .pin-dot.filled{background:var(--brass);border-color:var(--brass);}
+  .pin-dot.shake{animation:pinshake .35s;}
+  @keyframes pinshake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+  .pin-keypad{display:grid;grid-template-columns:repeat(3,64px);gap:12px;}
+  .pin-key{ width:64px;height:64px;border-radius:50%;border:1px solid var(--card-border);background:var(--card);color:var(--text); font-family:'IBM Plex Mono',monospace;font-size:20px;cursor:pointer; }
+  .pin-key:hover{border-color:var(--brass);color:var(--brass-light);}
+  .pin-key.wide{font-size:13px;font-family:'Inter',sans-serif;}
+  .lock-error{color:var(--red);font-size:12.5px;font-family:'IBM Plex Mono',monospace;min-height:16px;}
+  .lock-forgot{background:none;border:none;color:var(--text-dim);text-decoration:underline;cursor:pointer;font-size:12.5px;font-family:'Inter',sans-serif;}
+
+  .auth-screen{ position:fixed; inset:0; z-index:150; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
+  .auth-box{ background:var(--paper); color:var(--ink); border-radius:14px; padding:30px; max-width:400px; width:100%; }
+  .auth-box .brand-mark{margin-bottom:2px;}
+  .auth-box h2{font-family:'Fraunces',serif;font-size:24px;margin:0 0 6px;}
+  .auth-box p.sub{color:var(--muted);font-size:13px;margin:0 0 22px;}
+  .auth-box .primary-btn{ width:100%; background:var(--brass); color:#1c130a; border:none; padding:12px; border-radius:24px; font-weight:600; font-size:14px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .auth-box .primary-btn:hover{background:var(--brass-light);}
+
+  .applock-section{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);}
+  .applock-section h3{font-family:'Fraunces',serif;font-size:15px;margin:0 0 10px;}
+  .pin-input-row{display:flex;gap:8px;margin-bottom:10px;}
+  .pin-input-row input{ width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#f5f2e8;color:var(--ink); font-family:'IBM Plex Mono',monospace;letter-spacing:4px;text-align:center;font-size:16px; }
+  .applock-status{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+
   .history-list{list-style:none;padding:0;margin:0;max-height:240px;overflow-y:auto;}
   .history-list li{ display:flex;justify-content:space-between; padding:8px 0;border-bottom:1px solid var(--line); font-family:'IBM Plex Mono',monospace;font-size:13px; align-items:center; gap:8px;}
   .history-list li .st-paid{color:var(--green);font-weight:600;}
@@ -200,7 +246,37 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<div class="auth-screen" id="authGate">
+  <div class="auth-box">
+    <p class="brand-mark">The Household Ledger</p>
+    <h2 id="gateTitle">Log in</h2>
+    <p class="sub" id="gateSub">Sign in to see your bills, expenses and savings.</p>
+
+    <div id="gateLoading" style="text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:10px 0;">Checking session…</div>
+
+    <div id="gateLoginForm" style="display:none;">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="gateTabLogin">Log in</button>
+        <button class="auth-tab" id="gateTabSignup">Sign up</button>
+      </div>
+      <div class="field"><label for="gateEmail">Email</label><input type="email" id="gateEmail" placeholder="you@example.com"></div>
+      <div class="field"><label for="gatePassword">Password</label><input type="password" id="gatePassword" placeholder="At least 6 characters"></div>
+      <button type="button" class="lock-forgot" id="gateForgotBtn" style="margin:-6px 0 14px;">Forgot password?</button>
+      <div class="auth-msg" id="gateAuthMsg"></div>
+      <button class="primary-btn" id="gateSubmitBtn">Log in</button>
+    </div>
+
+    <div id="gateResetForm" style="display:none;">
+      <div class="field-hint" style="margin-bottom:14px;">Enter a new password for your account.</div>
+      <div class="field"><label for="gateNewPassword">New password</label><input type="password" id="gateNewPassword" placeholder="At least 6 characters"></div>
+      <div class="auth-msg" id="gateResetMsg"></div>
+      <button class="primary-btn" id="gateSubmitReset">Update password</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="mainApp" style="display:none;">
   <header class="top">
     <div>
       <p class="brand-mark">The Household Ledger</p>
@@ -215,6 +291,7 @@
       <button class="icon-toggle" id="themeToggle" title="Toggle theme">◐</button>
       <button class="icon-toggle" id="notifyToggle" title="Enable due-date reminders">🔔</button>
       <button class="icon-toggle" id="printBtn" title="Print this page">🖨</button>
+      <button class="link-btn" id="accountBtn" title="Sign up, log in, or manage backup">👤 Account</button>
     </div>
   </header>
 
@@ -486,6 +563,62 @@ Netflix, Subscription, 649, 5"></textarea></div>
   </div>
 </div>
 
+<!-- Account modal (shown only once logged in) -->
+<div class="overlay" id="accountOverlay">
+  <div class="modal">
+    <h2 id="accountModalTitle">Account</h2>
+
+    <div id="loggedInView" style="display:none;">
+      <div class="account-status">
+        <span><span class="sync-dot" id="syncDot"></span><span id="syncStatusText">Not synced yet</span></span>
+        <span id="accountEmail" style="color:var(--muted);font-size:12px;"></span>
+      </div>
+      <div class="field-hint" style="margin-bottom:14px;">Your bills, expenses, goals, and settings sync to the cloud automatically whenever you make a change, and load back in whenever you log in on any device.</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="manualSyncBtn">Sync now</button>
+        <button class="btn-primary" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <div class="applock-section">
+      <h3>App lock (this device)</h3>
+      <div class="applock-status" id="applockStatus">No PIN set for this device.</div>
+
+      <div id="pinSetupForm">
+        <div class="pin-input-row"><input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="newPin" placeholder="New PIN (4–8 digits)"></div>
+        <div class="pin-input-row"><input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" id="confirmPin" placeholder="Confirm PIN"></div>
+        <div class="auth-msg" id="pinMsg"></div>
+        <div class="modal-actions" style="margin-top:0;">
+          <button class="btn-primary" id="savePinBtn">Set PIN</button>
+        </div>
+      </div>
+
+      <div id="pinManageForm" style="display:none;">
+        <div class="modal-actions" style="margin-top:0;justify-content:flex-start;flex-wrap:wrap;">
+          <button class="btn-secondary" id="lockNowBtn">Lock now</button>
+          <button class="btn-secondary" id="changePinBtn">Change PIN</button>
+          <button class="btn-secondary" id="removePinBtn">Remove PIN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PIN lock screen -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-icon">🔒</div>
+  <p class="lock-title">Enter your PIN</p>
+  <div class="pin-dots" id="pinDots"></div>
+  <div class="lock-error" id="lockError"></div>
+  <div class="pin-keypad" id="pinKeypad">
+    <button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button>
+    <button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button>
+    <button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button>
+    <button class="pin-key wide" id="pinBackspace">⌫</button><button class="pin-key" data-k="0">0</button><button class="pin-key wide" id="pinClear">Clear</button>
+  </div>
+  <button class="lock-forgot" id="forgotPinBtn">Forgot PIN? Remove app lock</button>
+</div>
+
 <script>
 (function(){
   const BILLS_KEY = 'ledger.bills.v2';
@@ -512,12 +645,373 @@ Netflix, Subscription, 649, 5"></textarea></div>
   let currentPage = 'bills';
 
   function load(key, fallback){ try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(e){ return fallback; } }
-  function saveBills(){ localStorage.setItem(BILLS_KEY, JSON.stringify(bills)); }
-  function saveBudgets(){ localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets)); }
-  function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
-  function saveExpenses(){ localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses)); }
-  function saveExpenseBudgets(){ localStorage.setItem(EXP_BUDGET_KEY, JSON.stringify(expenseBudgets)); }
-  function saveGoals(){ localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
+  function saveBills(){ localStorage.setItem(BILLS_KEY, JSON.stringify(bills)); queueSync(); }
+  function saveBudgets(){ localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets)); queueSync(); }
+  function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); queueSync(); }
+  function saveExpenses(){ localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses)); queueSync(); }
+  function saveExpenseBudgets(){ localStorage.setItem(EXP_BUDGET_KEY, JSON.stringify(expenseBudgets)); queueSync(); }
+  function saveGoals(){ localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); queueSync(); }
+
+  // ================= SUPABASE AUTH + CLOUD BACKUP =================
+  const SUPABASE_URL = 'https://cazgqzlvwyzzhgjsjfny.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhemdxemx2d3l6emhnanNqZm55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNzI3MTgsImV4cCI6MjEwMTc0ODcxOH0.jRoohXlb3Qb1sOkuIxaO3Ljcbo0sjSnMd6uBJ04Yu9E';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let syncTimer = null;
+  let suppressSync = false; // true while we're applying data pulled FROM the cloud, so we don't immediately re-push it
+
+  function bundleData(){ return { bills, budgets, prefs, expenses, expenseBudgets, goals }; }
+
+  function applyBundle(data){
+    suppressSync = true;
+    bills = data.bills || [];
+    budgets = data.budgets || {};
+    prefs = Object.assign({ theme:'dark', currency:'INR', notify:false, incomeByMonth:{}, expenseTargetByMonth:{} }, data.prefs || {});
+    prefs.expenseTargetByMonth = prefs.expenseTargetByMonth || {};
+    expenses = data.expenses || [];
+    expenseBudgets = data.expenseBudgets || {};
+    goals = data.goals || [];
+    saveBills(); saveBudgets(); savePrefs(); saveExpenses(); saveExpenseBudgets(); saveGoals();
+    suppressSync = false;
+  }
+
+  function setSyncStatus(state){
+    // state: 'idle' | 'syncing' | 'synced' | 'error'
+    const dot = document.getElementById('syncDot');
+    const text = document.getElementById('syncStatusText');
+    const btnDot = document.querySelector('#accountBtn .dot');
+    if(!dot) return;
+    dot.className = 'sync-dot' + (state==='syncing'?' syncing':state==='synced'?' synced':state==='error'?' error':'');
+    text.textContent = state==='syncing' ? 'Syncing…' : state==='synced' ? ('Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})) : state==='error' ? 'Sync failed — will retry on next change' : 'Not synced yet';
+    if(btnDot) btnDot.classList.toggle('on', state==='synced');
+  }
+
+  async function pushToCloud(){
+    if(!currentUser) return;
+    setSyncStatus('syncing');
+    try{
+      const { error } = await sb.from('ledger_backups').upsert({ user_id: currentUser.id, data: bundleData(), updated_at: new Date().toISOString() });
+      if(error) throw error;
+      setSyncStatus('synced');
+    }catch(e){
+      console.error('Cloud sync failed:', e);
+      setSyncStatus('error');
+    }
+  }
+
+  function queueSync(){
+    if(!currentUser || suppressSync) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushToCloud, 700);
+  }
+
+  async function pullFromCloud(){
+    const { data, error } = await sb.from('ledger_backups').select('data').eq('user_id', currentUser.id).maybeSingle();
+    if(error){ console.error('Cloud fetch failed:', error); return null; }
+    return data ? data.data : null;
+  }
+
+  function refreshCurrentPage(){
+    if(currentPage==='bills') renderBills();
+    else if(currentPage==='expenses') renderExpenses();
+    else if(currentPage==='savings') renderSavings();
+    initCurrencySelects();
+    document.getElementById('currencySelect').value = prefs.currency;
+    applyTheme();
+  }
+
+  function updateAccountUI(){
+    const loggedIn = document.getElementById('loggedInView');
+    const btn = document.getElementById('accountBtn');
+    if(currentUser){
+      loggedIn.style.display = 'block';
+      document.getElementById('accountEmail').textContent = currentUser.email;
+      btn.innerHTML = '<span class="dot on"></span>' + escapeHtml(currentUser.email.split('@')[0]);
+    } else {
+      loggedIn.style.display = 'none';
+      btn.innerHTML = '👤 Account';
+      setSyncStatus('idle');
+    }
+  }
+
+  function showGate(){
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('gateLoading').style.display = 'none';
+    document.getElementById('gateResetForm').style.display = 'none';
+    document.getElementById('gateLoginForm').style.display = 'block';
+  }
+  function enterApp(){
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    switchPage('bills');
+    updateAccountUI();
+    updateApplockUI();
+    checkAppLockOnLoad();
+  }
+
+  async function initAuth(){
+    const { data: { session } } = await sb.auth.getSession();
+    if(session && session.user){
+      currentUser = session.user;
+      enterApp();
+      const cloud = await pullFromCloud();
+      if(cloud){ applyBundle(cloud); refreshCurrentPage(); setSyncStatus('synced'); }
+      else { pushToCloud(); } // first-ever login: nothing in cloud yet, push current local data
+    } else {
+      showGate();
+    }
+  }
+
+  let authMode = 'login';
+  function setAuthMode(mode){
+    authMode = mode;
+    document.getElementById('gateTabLogin').classList.toggle('active', mode==='login');
+    document.getElementById('gateTabSignup').classList.toggle('active', mode==='signup');
+    document.getElementById('gateSubmitBtn').textContent = mode==='login' ? 'Log in' : 'Sign up';
+    document.getElementById('gateTitle').textContent = mode==='login' ? 'Log in' : 'Create account';
+    hideAuthMsg();
+  }
+  function showAuthMsg(text, kind){
+    const el = document.getElementById('gateAuthMsg');
+    el.textContent = text; el.className = 'auth-msg show ' + kind;
+  }
+  function hideAuthMsg(){ document.getElementById('gateAuthMsg').className = 'auth-msg'; }
+
+  document.getElementById('gateTabLogin').addEventListener('click', ()=> setAuthMode('login'));
+  document.getElementById('gateTabSignup').addEventListener('click', ()=> setAuthMode('signup'));
+
+  document.getElementById('gateSubmitBtn').addEventListener('click', async ()=>{
+    const email = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value;
+    hideAuthMsg();
+    if(!email || !password){ showAuthMsg('Please enter an email and password.', 'error'); return; }
+    if(password.length < 6){ showAuthMsg('Password must be at least 6 characters.', 'error'); return; }
+
+    if(authMode === 'signup'){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error){ showAuthMsg(error.message, 'error'); return; }
+      if(data.session && data.user){
+        currentUser = data.user;
+        enterApp();
+        pushToCloud(); // brand-new account: push whatever local state exists (usually empty)
+      } else {
+        showAuthMsg('Account created — check your email to confirm, then log in.', 'ok');
+      }
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error){ showAuthMsg(error.message, 'error'); return; }
+      currentUser = data.user;
+      enterApp();
+      const cloud = await pullFromCloud();
+      if(cloud){ applyBundle(cloud); refreshCurrentPage(); setSyncStatus('synced'); }
+      else { pushToCloud(); }
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+    await sb.auth.signOut();
+    currentUser = null;
+    clearTimeout(syncTimer);
+    document.getElementById('accountOverlay').classList.remove('show');
+    document.getElementById('gateEmail').value = '';
+    document.getElementById('gatePassword').value = '';
+    setAuthMode('login');
+    showGate();
+  });
+
+  document.getElementById('manualSyncBtn').addEventListener('click', ()=>{ pushToCloud(); });
+
+  // ---------- forgot / reset password ----------
+  document.getElementById('gateForgotBtn').addEventListener('click', async ()=>{
+    const email = document.getElementById('gateEmail').value.trim();
+    hideAuthMsg();
+    if(!email){ showAuthMsg('Enter your email above first, then tap "Forgot password?" again.', 'error'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    if(error){ showAuthMsg(error.message, 'error'); return; }
+    showAuthMsg('Reset link sent — check your email. Opening that link will bring you back here to set a new password.', 'ok');
+  });
+
+  function showResetView(){
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('gateLoading').style.display = 'none';
+    document.getElementById('gateLoginForm').style.display = 'none';
+    document.getElementById('gateResetForm').style.display = 'block';
+    document.getElementById('gateTitle').textContent = 'Set a new password';
+    document.getElementById('gateSub').textContent = 'You followed a password reset link.';
+  }
+  document.getElementById('gateSubmitReset').addEventListener('click', async ()=>{
+    const pw = document.getElementById('gateNewPassword').value;
+    const el = document.getElementById('gateResetMsg');
+    if(!pw || pw.length < 6){ el.textContent = 'Password must be at least 6 characters.'; el.className='auth-msg show error'; return; }
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if(error){ el.textContent = error.message; el.className='auth-msg show error'; return; }
+    el.textContent = 'Password updated — signing you in…'; el.className='auth-msg show ok';
+    setTimeout(()=>{ enterApp(); pullFromCloud().then(cloud=>{ if(cloud){ applyBundle(cloud); refreshCurrentPage(); setSyncStatus('synced'); } }); }, 1200);
+  });
+  // Supabase fires this when the person arrives via a password-reset email link
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event === 'PASSWORD_RECOVERY'){ currentUser = session.user; showResetView(); }
+  });
+
+  // ================= LOCAL PIN APP-LOCK =================
+  const PIN_KEY = 'ledger.pinlock.v1';
+  const UNLOCK_FLAG = 'ledger.unlocked'; // sessionStorage: cleared when the tab/browser is closed
+  let pinLock = load(PIN_KEY, { enabled:false, hash:null, salt:null });
+  let pinEntry = '';
+  let pinStage = 'unlock'; // 'unlock' | 'setup-confirm-first' | 'change-verify' | 'remove-verify'
+  let pendingNewPinHash = null; // used during change flow, after verifying old pin
+
+  function toHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  async function hashPin(pin, saltHex){
+    const enc = new TextEncoder().encode(saltHex + ':' + pin);
+    const digest = await crypto.subtle.digest('SHA-256', enc);
+    return toHex(digest);
+  }
+  function randomSaltHex(){ const arr = new Uint8Array(16); crypto.getRandomValues(arr); return toHex(arr.buffer); }
+  function savePinLock(){ localStorage.setItem(PIN_KEY, JSON.stringify(pinLock)); }
+
+  function updateApplockUI(){
+    const statusEl = document.getElementById('applockStatus');
+    const setupForm = document.getElementById('pinSetupForm');
+    const manageForm = document.getElementById('pinManageForm');
+    if(pinLock.enabled){
+      statusEl.textContent = 'App lock is on for this device.';
+      setupForm.style.display = 'none';
+      manageForm.style.display = 'block';
+    } else {
+      statusEl.textContent = 'No PIN set for this device.';
+      setupForm.style.display = 'block';
+      manageForm.style.display = 'none';
+      document.getElementById('newPin').value = '';
+      document.getElementById('confirmPin').value = '';
+      document.getElementById('pinMsg').className = 'auth-msg';
+    }
+  }
+  function showPinMsg(text, kind){ const el = document.getElementById('pinMsg'); el.textContent = text; el.className = 'auth-msg show ' + kind; }
+
+  document.getElementById('savePinBtn').addEventListener('click', async ()=>{
+    const p1 = document.getElementById('newPin').value.trim();
+    const p2 = document.getElementById('confirmPin').value.trim();
+    if(!/^\d{4,8}$/.test(p1)){ showPinMsg('PIN must be 4–8 digits.', 'error'); return; }
+    if(p1 !== p2){ showPinMsg('PINs do not match.', 'error'); return; }
+    const salt = randomSaltHex();
+    const hash = await hashPin(p1, salt);
+    pinLock = { enabled:true, hash, salt };
+    savePinLock();
+    sessionStorage.setItem(UNLOCK_FLAG, '1'); // already unlocked this session, no need to re-enter immediately
+    showPinMsg('PIN set for this device.', 'ok');
+    updateApplockUI();
+  });
+
+  document.getElementById('lockNowBtn').addEventListener('click', ()=>{
+    sessionStorage.removeItem(UNLOCK_FLAG);
+    document.getElementById('accountOverlay').classList.remove('show');
+    showLockScreen('unlock');
+  });
+
+  document.getElementById('changePinBtn').addEventListener('click', ()=>{
+    document.getElementById('accountOverlay').classList.remove('show');
+    showLockScreen('change-verify');
+  });
+
+  document.getElementById('removePinBtn').addEventListener('click', ()=>{
+    document.getElementById('accountOverlay').classList.remove('show');
+    showLockScreen('remove-verify');
+  });
+
+  document.getElementById('forgotPinBtn').addEventListener('click', ()=>{
+    if(!confirm('This removes the PIN lock on this device only. Your cloud account and data are not affected. Continue?')) return;
+    pinLock = { enabled:false, hash:null, salt:null };
+    savePinLock();
+    sessionStorage.setItem(UNLOCK_FLAG, '1');
+    hideLockScreen();
+    updateApplockUI();
+  });
+
+  function renderPinDots(){
+    const wrap = document.getElementById('pinDots'); wrap.innerHTML = '';
+    const dotCount = 6; // visual max shown; entry can still be up to 8 digits, dots just track progress
+    for(let i=0;i<dotCount;i++){
+      const d = document.createElement('div');
+      d.className = 'pin-dot' + (i < pinEntry.length ? ' filled' : '');
+      wrap.appendChild(d);
+    }
+  }
+  function shakeDots(){
+    const wrap = document.getElementById('pinDots');
+    wrap.classList.add('shake');
+    setTimeout(()=> wrap.classList.remove('shake'), 350);
+  }
+  function lockScreenTitleFor(stage){
+    if(stage==='unlock') return 'Enter your PIN';
+    if(stage==='change-verify') return 'Enter current PIN';
+    if(stage==='change-new') return 'Enter new PIN';
+    if(stage==='change-confirm') return 'Confirm new PIN';
+    if(stage==='remove-verify') return 'Enter PIN to remove lock';
+    return 'Enter your PIN';
+  }
+  function showLockScreen(stage){
+    pinStage = stage; pinEntry = '';
+    document.querySelector('#lockScreen .lock-title').textContent = lockScreenTitleFor(stage);
+    document.getElementById('lockError').textContent = '';
+    document.getElementById('forgotPinBtn').style.display = (stage==='unlock') ? 'block' : 'none';
+    renderPinDots();
+    document.getElementById('lockScreen').classList.add('show');
+  }
+  function hideLockScreen(){ document.getElementById('lockScreen').classList.remove('show'); pinEntry=''; }
+
+  async function handlePinComplete(){
+    const entered = pinEntry;
+    if(pinStage === 'unlock'){
+      const hash = await hashPin(entered, pinLock.salt);
+      if(hash === pinLock.hash){ sessionStorage.setItem(UNLOCK_FLAG,'1'); hideLockScreen(); }
+      else { document.getElementById('lockError').textContent = 'Incorrect PIN.'; shakeDots(); pinEntry=''; renderPinDots(); }
+    } else if(pinStage === 'change-verify'){
+      const hash = await hashPin(entered, pinLock.salt);
+      if(hash === pinLock.hash){ showLockScreen('change-new'); }
+      else { document.getElementById('lockError').textContent = 'Incorrect current PIN.'; shakeDots(); pinEntry=''; renderPinDots(); }
+    } else if(pinStage === 'change-new'){
+      if(!/^\d{4,8}$/.test(entered)){ document.getElementById('lockError').textContent = 'PIN must be 4–8 digits.'; pinEntry=''; renderPinDots(); return; }
+      pendingNewPinHash = entered; // stash the raw new pin temporarily to confirm
+      showLockScreen('change-confirm');
+    } else if(pinStage === 'change-confirm'){
+      if(entered !== pendingNewPinHash){ document.getElementById('lockError').textContent = 'PINs did not match. Try again.'; shakeDots(); pendingNewPinHash=null; showLockScreen('change-new'); return; }
+      const salt = randomSaltHex();
+      const hash = await hashPin(entered, salt);
+      pinLock = { enabled:true, hash, salt }; savePinLock(); pendingNewPinHash = null;
+      sessionStorage.setItem(UNLOCK_FLAG,'1'); hideLockScreen(); updateApplockUI();
+    } else if(pinStage === 'remove-verify'){
+      const hash = await hashPin(entered, pinLock.salt);
+      if(hash === pinLock.hash){ pinLock = { enabled:false, hash:null, salt:null }; savePinLock(); sessionStorage.setItem(UNLOCK_FLAG,'1'); hideLockScreen(); updateApplockUI(); }
+      else { document.getElementById('lockError').textContent = 'Incorrect PIN.'; shakeDots(); pinEntry=''; renderPinDots(); }
+    }
+  }
+
+  let pinSubmitTimer = null;
+  document.getElementById('pinKeypad').addEventListener('click', (e)=>{
+    const key = e.target.closest('.pin-key'); if(!key) return;
+    clearTimeout(pinSubmitTimer);
+    if(key.id === 'pinBackspace'){ pinEntry = pinEntry.slice(0,-1); renderPinDots(); return; }
+    if(key.id === 'pinClear'){ pinEntry = ''; renderPinDots(); return; }
+    if(pinEntry.length >= 8) return;
+    pinEntry += key.dataset.k;
+    renderPinDots();
+    // Auto-submit shortly after reaching 4 digits (typical PIN length), giving a moment for longer PINs
+    if(pinEntry.length >= 4){ pinSubmitTimer = setTimeout(()=>{ if(pinEntry.length>=4) handlePinComplete(); }, 350); }
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(!document.getElementById('lockScreen').classList.contains('show')) return;
+    if(/^[0-9]$/.test(e.key) && pinEntry.length < 8){ pinEntry += e.key; renderPinDots(); clearTimeout(pinSubmitTimer); if(pinEntry.length>=4) pinSubmitTimer = setTimeout(()=>{ if(pinEntry.length>=4) handlePinComplete(); }, 350); }
+    else if(e.key === 'Backspace'){ pinEntry = pinEntry.slice(0,-1); renderPinDots(); }
+    else if(e.key === 'Enter' && pinEntry.length>=4){ clearTimeout(pinSubmitTimer); handlePinComplete(); }
+  });
+
+  function checkAppLockOnLoad(){
+    if(pinLock.enabled && sessionStorage.getItem(UNLOCK_FLAG) !== '1'){ showLockScreen('unlock'); }
+  }
 
   function monthKey(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
   function monthDiff(fromKey, toKey){ const [fy,fm]=fromKey.split('-').map(Number); const [ty,tm]=toKey.split('-').map(Number); return (ty-fy)*12+(tm-fm); }
@@ -1348,7 +1842,7 @@ Netflix, Subscription, 649, 5"></textarea></div>
   applyTheme();
   initCurrencySelects();
   initNotify();
-  switchPage('bills');
+  initAuth();
 })();
 </script>
 </body>
