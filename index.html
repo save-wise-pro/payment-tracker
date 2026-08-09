@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --ink:#151a1f; --paper:#e9e4d6; --paper-dim:#dcd6c4;
@@ -210,6 +211,26 @@
   .auth-box .primary-btn{ width:100%; background:var(--brass); color:#1c130a; border:none; padding:12px; border-radius:24px; font-weight:600; font-size:14px; cursor:pointer; font-family:'Inter',sans-serif; }
   .auth-box .primary-btn:hover{background:var(--brass-light);}
 
+  .fab-add{
+    position:fixed; right:18px; bottom:76px; z-index:55;
+    width:54px; height:54px; border-radius:50%; border:none;
+    background:var(--brass); color:#1c130a; font-size:26px; line-height:1;
+    box-shadow:0 4px 14px rgba(0,0,0,0.35); cursor:pointer;
+  }
+  .fab-add:hover{background:var(--brass-light);}
+
+  .search-result{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer;
+  }
+  .search-result:hover{background:rgba(184,137,43,0.08);}
+  .search-result .sr-main{min-width:0;}
+  .search-result .sr-title{font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--ink);}
+  .search-result .sr-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  .search-result .sr-amount{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;}
+  .search-section-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:14px 0 4px;}
+  .search-section-label:first-child{margin-top:4px;}
+
   .applock-section{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);}
   .applock-section h3{font-family:'Fraunces',serif;font-size:15px;margin:0 0 10px;}
   .pin-input-row{display:flex;gap:8px;margin-bottom:10px;}
@@ -289,9 +310,12 @@
         <button id="nextMonth" aria-label="Next month">›</button>
       </div>
       <button class="icon-toggle" id="themeToggle" title="Toggle theme">◐</button>
+      <button class="icon-toggle" id="globalSearchBtn" title="Search everything">🔍</button>
+      <button class="icon-toggle" id="statementBtn" title="Download monthly statement (PDF)">📄</button>
       <button class="icon-toggle" id="notifyToggle" title="Enable due-date reminders">🔔</button>
       <button class="icon-toggle" id="printBtn" title="Print this page">🖨</button>
-      <button class="link-btn" id="accountBtn" title="Sign up, log in, or manage backup">👤 Account</button>
+      <button class="link-btn" id="accountBtn" title="Account, sync, and app lock">👤 Account</button>
+      <button class="icon-toggle" id="headerSignOutBtn" title="Sign out">⎋</button>
     </div>
   </header>
 
@@ -427,6 +451,17 @@
   <footer class="note">Stored locally in this browser · nothing leaves your device</footer>
 </div>
 
+<button class="fab-add" id="fabAddExpense" title="Quick add expense">+</button>
+
+<div class="overlay" id="searchOverlay">
+  <div class="modal" style="max-width:480px;">
+    <h2>Search everything</h2>
+    <div class="field"><input type="text" id="globalSearchInput" placeholder="Search bills, expenses, goals…" autocomplete="off"></div>
+    <div id="globalSearchResults" style="max-height:50vh;overflow-y:auto;"></div>
+    <div class="modal-actions"><button class="btn-secondary" id="closeGlobalSearch">Close</button></div>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <button class="nav-btn active" data-page="bills"><span class="ic">🧾</span><span>Bills</span></button>
   <button class="nav-btn" data-page="expenses"><span class="ic">🛒</span><span>Expenses</span></button>
@@ -512,6 +547,8 @@ Netflix, Subscription, 649, 5"></textarea></div>
 <div class="overlay" id="expOverlay">
   <div class="modal">
     <h2 id="expModalTitle">Add expense</h2>
+    <button type="button" class="mini-btn" id="voiceExpenseBtn" style="margin-bottom:14px;">🎙 Speak it (English / മലയാളം)</button>
+    <div id="voiceStatus" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:-8px 0 14px;"></div>
     <div class="field-row">
       <div class="field"><label for="expDate">Date</label><input type="date" id="expDate"></div>
       <div class="field"><label for="expAmount">Amount</label><input type="number" id="expAmount" min="0" step="0.01" placeholder="0.00"></div>
@@ -525,6 +562,7 @@ Netflix, Subscription, 649, 5"></textarea></div>
       <div class="field"><label for="expCurrency">Currency</label><select id="expCurrency"></select></div>
     </div>
     <div class="field"><label for="expNote">Note (optional)</label><input type="text" id="expNote" placeholder="e.g. weekly grocery run"></div>
+    <div class="field-hint" id="voiceHint" style="display:none;">Filled in from your voice — please check the amount and category before saving.</div>
     <div class="modal-actions"><button class="btn-secondary" id="cancelExp">Cancel</button><button class="btn-primary" id="saveExpense">Save expense</button></div>
   </div>
 </div>
@@ -819,6 +857,11 @@ Netflix, Subscription, 649, 5"></textarea></div>
     document.getElementById('gatePassword').value = '';
     setAuthMode('login');
     showGate();
+  });
+
+  document.getElementById('headerSignOutBtn').addEventListener('click', ()=>{
+    if(!currentUser) return;
+    if(confirm('Sign out of ' + currentUser.email + '?')) document.getElementById('logoutBtn').click();
   });
 
   document.getElementById('manualSyncBtn').addEventListener('click', ()=>{ pushToCloud(); });
@@ -1681,6 +1724,7 @@ Netflix, Subscription, 649, 5"></textarea></div>
     document.getElementById('expDate').value = todayStr();
     document.getElementById('expAmount').value = ''; document.getElementById('expCategory').value = '';
     document.getElementById('expCurrency').value = prefs.currency; document.getElementById('expNote').value = '';
+    document.getElementById('voiceHint').style.display = 'none';
     refreshExpenseCategoryUI();
     expOverlay.classList.add('show'); document.getElementById('expCategory').focus();
   });
@@ -1837,6 +1881,225 @@ Netflix, Subscription, 649, 5"></textarea></div>
   }
   document.getElementById('closeGoalHistory').addEventListener('click', ()=> goalHistoryOverlay.classList.remove('show'));
   goalHistoryOverlay.addEventListener('click', (e)=>{ if(e.target===goalHistoryOverlay) goalHistoryOverlay.classList.remove('show'); });
+
+  // ================= FLOATING QUICK-ADD =================
+  document.getElementById('fabAddExpense').addEventListener('click', ()=>{
+    switchPage('expenses');
+    document.getElementById('openAddExpense').click();
+  });
+
+  // ================= UNIFIED SEARCH =================
+  const searchOverlay = document.getElementById('searchOverlay');
+  document.getElementById('globalSearchBtn').addEventListener('click', ()=>{
+    document.getElementById('globalSearchInput').value = '';
+    document.getElementById('globalSearchResults').innerHTML = '<div class="field-hint">Type to search bills, expenses, and savings goals.</div>';
+    searchOverlay.classList.add('show');
+    setTimeout(()=>document.getElementById('globalSearchInput').focus(), 50);
+  });
+  document.getElementById('closeGlobalSearch').addEventListener('click', ()=> searchOverlay.classList.remove('show'));
+  searchOverlay.addEventListener('click', (e)=>{ if(e.target===searchOverlay) searchOverlay.classList.remove('show'); });
+
+  function runGlobalSearch(q){
+    const results = document.getElementById('globalSearchResults');
+    q = q.trim().toLowerCase();
+    if(!q){ results.innerHTML = '<div class="field-hint">Type to search bills, expenses, and savings goals.</div>'; return; }
+
+    const billMatches = bills.filter(b=> !b.archived && ((b.name+' '+(b.tags||'')+' '+(b.note||'')).toLowerCase().includes(q))).slice(0,8);
+    const expMatches = expenses.filter(e=> ((e.category+' '+(e.note||'')).toLowerCase().includes(q))).slice(0,8);
+    const goalMatches = goals.filter(g=> g.name.toLowerCase().includes(q)).slice(0,8);
+
+    let html = '';
+    if(billMatches.length){
+      html += '<div class="search-section-label">Bills</div>';
+      billMatches.forEach(b=>{
+        html += `<div class="search-result" data-type="bill" data-id="${b.id}"><div class="sr-main"><div class="sr-title">${escapeHtml(b.name)}</div><div class="sr-sub">${b.category} · due ${b.dueDay}</div></div><div class="sr-amount">${fmtAmount(b.amount, billCurrency(b))}</div></div>`;
+      });
+    }
+    if(expMatches.length){
+      html += '<div class="search-section-label">Expenses</div>';
+      expMatches.forEach(e=>{
+        html += `<div class="search-result" data-type="expense" data-id="${e.id}"><div class="sr-main"><div class="sr-title">${escapeHtml(e.category)}</div><div class="sr-sub">${e.date}${e.note?' · '+escapeHtml(e.note):''}</div></div><div class="sr-amount">${fmtAmount(e.amount, e.currency||prefs.currency)}</div></div>`;
+      });
+    }
+    if(goalMatches.length){
+      html += '<div class="search-section-label">Savings goals</div>';
+      goalMatches.forEach(g=>{
+        html += `<div class="search-result" data-type="goal" data-id="${g.id}"><div class="sr-main"><div class="sr-title">${escapeHtml(g.name)}</div><div class="sr-sub">${Math.round((g.saved/g.target)*100)||0}% saved</div></div><div class="sr-amount">${fmtAmount(g.target, goalCurrency(g))}</div></div>`;
+      });
+    }
+    if(!html) html = '<div class="field-hint">No matches.</div>';
+    results.innerHTML = html;
+  }
+  document.getElementById('globalSearchInput').addEventListener('input', (e)=> runGlobalSearch(e.target.value));
+
+  document.getElementById('globalSearchResults').addEventListener('click', (e)=>{
+    const row = e.target.closest('.search-result'); if(!row) return;
+    const { type, id } = row.dataset;
+    searchOverlay.classList.remove('show');
+    if(type==='bill'){
+      const b = bills.find(x=>x.id===id); if(!b) return;
+      if(b.createdMonth) viewDate = new Date(b.createdMonth+'-01');
+      switchPage('bills');
+      document.getElementById('searchInput').value = b.name;
+      renderBills();
+    } else if(type==='expense'){
+      const ex = expenses.find(x=>x.id===id); if(!ex) return;
+      viewDate = new Date(ex.date.slice(0,7)+'-01');
+      switchPage('expenses');
+      document.getElementById('expSearch').value = ex.category;
+      renderExpenses();
+    } else if(type==='goal'){
+      switchPage('savings');
+    }
+  });
+
+  // ================= PDF MONTHLY STATEMENT =================
+  document.getElementById('statementBtn').addEventListener('click', ()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const key = monthKey(viewDate);
+    const monthLabel = viewDate.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+    let y = 20;
+    const left = 15, right = 195;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.text('Monthly Statement', left, y); y += 7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(90);
+    doc.text(monthLabel, left, y); y += 10;
+    doc.setTextColor(0);
+
+    function sectionHeader(title){
+      doc.setFont('helvetica','bold'); doc.setFontSize(13);
+      doc.text(title, left, y); y += 2;
+      doc.setDrawColor(200); doc.line(left, y, right, y); y += 7;
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    }
+    function line(a, b){
+      if(y > 275){ doc.addPage(); y = 20; }
+      doc.text(String(a), left, y);
+      doc.text(String(b), right, y, { align:'right' });
+      y += 6;
+    }
+
+    // Bills
+    sectionHeader('Bills');
+    const monthBills = bills.filter(b=>!b.archived && isDueInMonth(b,key));
+    let billsPaid = 0, billsDue = 0;
+    monthBills.forEach(b=>{
+      const paid = isPaid(b,key);
+      if(paid) billsPaid += Number(b.amount); else billsDue += Number(b.amount);
+      line(`${b.name} (${b.category})${paid?' — Paid':' — Unpaid'}`, fmtAmount(b.amount, billCurrency(b)));
+    });
+    if(monthBills.length===0) line('No bills this month', '');
+    y += 2; line('Total paid', fmtMoney(billsPaid)); line('Total due', fmtMoney(billsDue)); y += 6;
+
+    // Expenses
+    sectionHeader('Expenses');
+    const monthExp = expenses.filter(e=>e.date && e.date.slice(0,7)===key);
+    const catTotals = {};
+    monthExp.forEach(e=>{ catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
+    const catList = Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]);
+    if(catList.length===0) line('No expenses logged this month', '');
+    catList.forEach(c=> line(c, fmtMoney(catTotals[c])));
+    const expTotal = monthExp.reduce((s,e)=>s+Number(e.amount),0);
+    y += 2; line('Total spent', fmtMoney(expTotal)); y += 6;
+
+    // Income / leftover
+    sectionHeader('Income & leftover');
+    const income = Number(prefs.incomeByMonth[key] || 0);
+    line('Income this month', income ? fmtMoney(income) : 'Not set');
+    line('Bills + expenses', fmtMoney(billsPaid + billsDue + expTotal));
+    if(income>0) line('Leftover', fmtMoney(income - billsPaid - billsDue - expTotal));
+    y += 6;
+
+    // Savings goals
+    sectionHeader('Savings goals');
+    if(goals.length===0) line('No savings goals yet', '');
+    goals.forEach(g=>{
+      const pct = g.target>0 ? Math.round((g.saved/g.target)*100) : 0;
+      line(g.name, `${fmtAmount(g.saved, goalCurrency(g))} / ${fmtAmount(g.target, goalCurrency(g))} (${pct}%)`);
+    });
+
+    doc.setFontSize(8); doc.setTextColor(150);
+    doc.text('Generated by The Household Ledger', left, 290);
+
+    doc.save(`statement-${key}.pdf`);
+  });
+
+  // ================= VOICE-TO-EXPENSE (English / Malayalam) =================
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const CATEGORY_KEYWORDS = [
+    { cat:'Groceries', words:['grocery','groceries','vegetables','veggies','supermarket','പലചരക്ക്','സാധനങ്ങൾ','പച്ചക്കറി','കടയിൽ'] },
+    { cat:'Petrol', words:['petrol','fuel','diesel','bike fuel','fill up','പെട്രോൾ','ഇന്ധനം','ഡീസൽ'] },
+    { cat:'Family support', words:['parents','mother','father','amma','achan','family','sent home','വീട്ടിൽ','അമ്മ','അച്ഛൻ','കുടുംബം','അയച്ചു'] },
+    { cat:'Eating out', words:['restaurant','food','lunch','dinner','breakfast','hotel','tea shop','ഭക്ഷണം','ഹോട്ടൽ','ചായ കട'] },
+    { cat:'Health', words:['medicine','hospital','doctor','pharmacy','clinic','മരുന്ന്','ആശുപത്രി','ഡോക്ടർ','ഫാർമസി'] },
+    { cat:'Shopping', words:['shopping','clothes','dress','shirt','ഷോപ്പിംഗ്','വസ്ത്രം','തുണി'] },
+  ];
+  function guessCategoryFromText(t){
+    const lower = t.toLowerCase();
+    for(const entry of CATEGORY_KEYWORDS){
+      for(const w of entry.words){ if(lower.includes(w.toLowerCase())) return entry.cat; }
+    }
+    return null;
+  }
+  function extractAmount(t){
+    // strip currency words so a stray "2026" from a spoken date-ish phrase doesn't get picked over the real amount
+    const m = t.match(/(\d+(?:[.,]\d+)?)/);
+    return m ? m[1].replace(',', '.') : null;
+  }
+
+  function recognizeOnce(lang){
+    return new Promise((resolve, reject)=>{
+      if(!SpeechRecognitionAPI){ reject('unsupported'); return; }
+      const rec = new SpeechRecognitionAPI();
+      rec.lang = lang; rec.interimResults = false; rec.maxAlternatives = 1;
+      let settled = false;
+      rec.onresult = (e)=>{ settled = true; resolve(e.results[0][0].transcript); };
+      rec.onerror = (e)=>{ if(!settled){ settled = true; reject(e.error || 'error'); } };
+      rec.onend = ()=>{ if(!settled){ settled = true; reject('no-speech'); } };
+      try{ rec.start(); }catch(e){ reject('start-failed'); }
+    });
+  }
+
+  document.getElementById('voiceExpenseBtn').addEventListener('click', async ()=>{
+    if(!SpeechRecognitionAPI){
+      alert('Voice input needs Chrome (desktop or Android) with an internet connection.');
+      return;
+    }
+    const statusEl = document.getElementById('voiceStatus');
+    statusEl.style.display = 'block';
+    statusEl.textContent = '🎙 Listening… (try English first)';
+    try{
+      let transcript = await recognizeOnce('en-IN');
+      const gotAmount = extractAmount(transcript);
+      const looksThin = transcript.trim().split(/\s+/).length < 2;
+      if(!gotAmount || looksThin){
+        statusEl.textContent = '🎙 Didn\'t catch a clear amount — trying Malayalam…';
+        try{
+          const mlTranscript = await recognizeOnce('ml-IN');
+          if(extractAmount(mlTranscript)) transcript = mlTranscript;
+        }catch(e2){ /* keep the English attempt, better than nothing */ }
+      }
+      statusEl.style.display = 'none';
+      applyVoiceTranscript(transcript);
+    }catch(err){
+      statusEl.style.display = 'none';
+      if(err === 'no-speech') alert("Didn't catch anything — try again, a bit closer to the mic.");
+      else if(err === 'not-allowed') alert('Microphone access was blocked. Allow it in your browser settings and try again.');
+      else alert('Voice input needs Chrome with microphone + internet access.');
+    }
+  });
+
+  function applyVoiceTranscript(transcript){
+    document.getElementById('expNote').value = transcript;
+    const amt = extractAmount(transcript);
+    if(amt) document.getElementById('expAmount').value = amt;
+    const guessed = guessCategoryFromText(transcript);
+    if(guessed) document.getElementById('expCategory').value = guessed;
+    document.getElementById('voiceHint').style.display = 'block';
+  }
 
   // ================= INIT =================
   applyTheme();
