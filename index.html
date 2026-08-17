@@ -409,6 +409,11 @@
         <div class="insight-row"><span>Spent so far</span><span id="expTargetSpent">0</span></div>
         <div class="goal-bar-track"><div class="goal-bar-fill" id="expTargetBarFill" style="width:0%"></div></div>
         <div class="insight-row"><span id="expTargetRemaining">Set a target to track progress</span></div>
+        <div id="dailyPaceBlock" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--card-border);">
+          <div class="insight-row"><span>Daily safe-to-spend</span><span id="dailyPaceFlat"></span></div>
+          <div class="insight-row"><span id="dailyPaceStatusLabel">Today's status</span><span id="dailyPaceStatus"></span></div>
+          <div class="insight-row"><span id="dailyPaceSafeLabel">Safe amount, rest of month</span><span class="insight-big" id="dailyPaceSafe"></span></div>
+        </div>
       </div>
     </div>
 
@@ -1674,9 +1679,52 @@ Netflix, Subscription, 649, 5"></textarea></div>
       remEl.textContent = spentDisplay > target
         ? `⚠ Over target by ${fmtMoney(spentDisplay - target)}`
         : `${fmtMoney(target - spentDisplay)} left of ${fmtMoney(target)} target`;
+
+      // daily safe-to-spend pacing
+      const [yy, mm] = key.split('-').map(Number);
+      const daysInMonth = new Date(yy, mm, 0).getDate();
+      const dailyFlat = target / daysInMonth;
+      const todayReal = new Date();
+      const todayKey = monthKey(todayReal);
+      let daysElapsed, daysRemaining;
+      if(key === todayKey){ daysElapsed = todayReal.getDate(); daysRemaining = daysInMonth - daysElapsed; }
+      else if(key < todayKey){ daysElapsed = daysInMonth; daysRemaining = 0; }
+      else { daysElapsed = 0; daysRemaining = daysInMonth; }
+
+      const idealByNow = dailyFlat * daysElapsed;
+      const paceDiff = spentDisplay - idealByNow;
+      const remainingBudget = Math.max(0, target - spentDisplay);
+      const safeDaily = daysRemaining > 0 ? remainingBudget / daysRemaining : (remainingBudget > 0 ? remainingBudget : 0);
+
+      document.getElementById('dailyPaceBlock').style.display = 'block';
+      document.getElementById('dailyPaceFlat').textContent = fmtMoney(dailyFlat) + ' / day (' + daysInMonth + ' days)';
+
+      const statusEl = document.getElementById('dailyPaceStatus');
+      if(daysElapsed === 0){
+        statusEl.textContent = 'Month hasn\'t started';
+        statusEl.style.color = 'var(--text-dim)';
+      } else if(paceDiff > 0){
+        statusEl.textContent = `⚠ ${fmtMoney(paceDiff)} over pace`;
+        statusEl.style.color = 'var(--red)';
+      } else {
+        statusEl.textContent = `On track (${fmtMoney(-paceDiff)} under)`;
+        statusEl.style.color = 'var(--green)';
+      }
+
+      const safeEl = document.getElementById('dailyPaceSafe');
+      if(daysRemaining <= 0){
+        document.getElementById('dailyPaceSafeLabel').textContent = remainingBudget > 0 ? 'Left for the last day' : 'Target used up';
+        safeEl.textContent = fmtMoney(remainingBudget);
+        safeEl.className = 'insight-big ' + (remainingBudget > 0 ? 'pos' : 'neg');
+      } else {
+        document.getElementById('dailyPaceSafeLabel').textContent = `Safe amount, ${daysRemaining} day${daysRemaining===1?'':'s'} left`;
+        safeEl.textContent = remainingBudget > 0 ? fmtMoney(safeDaily) + ' / day' : fmtMoney(0) + ' / day';
+        safeEl.className = 'insight-big ' + (remainingBudget > 0 ? (safeDaily < dailyFlat ? 'neg' : 'pos') : 'neg');
+      }
     } else {
       barEl.style.width = '0%';
       remEl.textContent = 'Set a target to track progress';
+      document.getElementById('dailyPaceBlock').style.display = 'none';
     }
 
     renderExpenseCharts(key, catTotals);
