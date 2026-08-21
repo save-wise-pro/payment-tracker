@@ -567,9 +567,26 @@ Netflix, Subscription, 649, 5"></textarea></div>
       <div class="field"><label for="expCurrency">Currency</label><select id="expCurrency"></select></div>
     </div>
     <div class="field"><label for="expNote">Note (optional)</label><input type="text" id="expNote" placeholder="e.g. weekly grocery run"></div>
+    <div class="field">
+      <label>Bill / receipt photo (optional)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="mini-btn" id="expReceiptCameraBtn">📷 Take photo</button>
+        <button type="button" class="mini-btn" id="expReceiptGalleryBtn">🖼 Choose from gallery</button>
+        <button type="button" class="mini-btn" id="expReceiptClearBtn" style="display:none;">✕ Remove</button>
+      </div>
+      <input type="file" id="expReceiptCamera" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="expReceiptGallery" accept="image/*" style="display:none;">
+      <div class="field-hint" id="expReceiptStatus"></div>
+      <img id="expReceiptPreview" class="receipt-thumb" style="display:none;width:64px;height:64px;margin-top:6px;" alt="Receipt preview">
+    </div>
     <div class="field-hint" id="voiceHint" style="display:none;">Filled in from your voice — please check the amount and category before saving.</div>
     <div class="modal-actions"><button class="btn-secondary" id="cancelExp">Cancel</button><button class="btn-primary" id="saveExpense">Save expense</button></div>
   </div>
+</div>
+
+<!-- Receipt fullscreen lightbox -->
+<div class="overlay" id="receiptLightbox" style="background:rgba(0,0,0,.85);">
+  <img id="receiptLightboxImg" src="" alt="Receipt" style="max-width:92vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);">
 </div>
 
 <!-- Add/Edit goal modal -->
@@ -1640,8 +1657,10 @@ Netflix, Subscription, 649, 5"></textarea></div>
       const catCap = expenseBudgets[exp.category];
       const overCap = catCap && catTotals[exp.category] > Number(catCap);
       if(overCap) row.style.boxShadow = 'inset 3px 0 0 var(--red)';
+      const expReceiptHtml = exp.receipt ? `<img class="receipt-thumb" src="${exp.receipt}" alt="Receipt for ${escapeHtml(exp.category)}" data-action="viewreceipt" data-id="${exp.id}" style="cursor:pointer;">` : '';
       row.innerHTML = `
         <div class="expense-date">${new Date(exp.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div>
+        ${expReceiptHtml}
         <div style="flex:1;min-width:0;">
           <p class="expense-cat">${escapeHtml(exp.category)}${overCap ? ' <span class="tag overdue" style="font-size:9px;">over target</span>' : ''}</p>
           ${exp.note ? `<div class="expense-note">${escapeHtml(exp.note)}</div>` : ''}
@@ -1735,7 +1754,10 @@ Netflix, Subscription, 649, 5"></textarea></div>
     const exp = expenses.find(x=>x.id===btn.dataset.id); if(!exp) return;
     if(btn.dataset.action==='delete'){ if(confirm('Delete this expense?')){ expenses = expenses.filter(x=>x.id!==exp.id); saveExpenses(); renderExpenses(); } }
     else if(btn.dataset.action==='edit'){ openEditExpense(exp); }
+    else if(btn.dataset.action==='viewreceipt'){ if(exp.receipt){ document.getElementById('receiptLightboxImg').src = exp.receipt; document.getElementById('receiptLightbox').classList.add('show'); } }
   });
+  const receiptLightbox = document.getElementById('receiptLightbox');
+  if(receiptLightbox) receiptLightbox.addEventListener('click', ()=> receiptLightbox.classList.remove('show'));
   ['expSearch'].forEach(id=>document.getElementById(id).addEventListener('input', renderExpenses));
   ['expCategoryFilter','expSort'].forEach(id=>document.getElementById(id).addEventListener('change', renderExpenses));
   document.getElementById('expTargetInput').addEventListener('change', (e)=>{
@@ -1766,6 +1788,32 @@ Netflix, Subscription, 649, 5"></textarea></div>
   });
 
   const expOverlay = document.getElementById('expOverlay');
+  let pendingExpReceipt = null;
+  function setExpReceiptPreview(dataUrl, label){
+    const status = document.getElementById('expReceiptStatus');
+    const preview = document.getElementById('expReceiptPreview');
+    const clearBtn = document.getElementById('expReceiptClearBtn');
+    if(dataUrl){
+      status.textContent = label || 'Photo attached';
+      preview.src = dataUrl; preview.style.display = 'inline-block';
+      clearBtn.style.display = 'inline-block';
+    } else {
+      status.textContent = ''; preview.style.display = 'none'; preview.src = '';
+      clearBtn.style.display = 'none';
+    }
+  }
+  function handleExpReceiptFile(file){
+    if(!file) return;
+    if(file.size > 800*1024){ alert('Please pick an image under 800KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { pendingExpReceipt = reader.result; setExpReceiptPreview(pendingExpReceipt, 'Attached: ' + file.name); };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById('expReceiptCameraBtn').addEventListener('click', ()=> document.getElementById('expReceiptCamera').click());
+  document.getElementById('expReceiptGalleryBtn').addEventListener('click', ()=> document.getElementById('expReceiptGallery').click());
+  document.getElementById('expReceiptCamera').addEventListener('change', (e)=>{ handleExpReceiptFile(e.target.files[0]); e.target.value=''; });
+  document.getElementById('expReceiptGallery').addEventListener('change', (e)=>{ handleExpReceiptFile(e.target.files[0]); e.target.value=''; });
+  document.getElementById('expReceiptClearBtn').addEventListener('click', ()=>{ pendingExpReceipt = null; setExpReceiptPreview(null); });
   document.getElementById('openAddExpense').addEventListener('click', ()=>{
     editingExpId = null;
     document.getElementById('expModalTitle').textContent = 'Add expense';
@@ -1773,6 +1821,7 @@ Netflix, Subscription, 649, 5"></textarea></div>
     document.getElementById('expAmount').value = ''; document.getElementById('expCategory').value = '';
     document.getElementById('expCurrency').value = prefs.currency; document.getElementById('expNote').value = '';
     document.getElementById('voiceHint').style.display = 'none';
+    pendingExpReceipt = null; setExpReceiptPreview(null);
     refreshExpenseCategoryUI();
     expOverlay.classList.add('show'); document.getElementById('expCategory').focus();
   });
@@ -1782,6 +1831,7 @@ Netflix, Subscription, 649, 5"></textarea></div>
     document.getElementById('expDate').value = exp.date; document.getElementById('expAmount').value = exp.amount;
     document.getElementById('expCategory').value = exp.category; document.getElementById('expCurrency').value = exp.currency||prefs.currency;
     document.getElementById('expNote').value = exp.note || '';
+    pendingExpReceipt = exp.receipt || null; setExpReceiptPreview(pendingExpReceipt, pendingExpReceipt ? 'Receipt already attached' : '');
     refreshExpenseCategoryUI();
     expOverlay.classList.add('show');
   }
@@ -1796,8 +1846,8 @@ Netflix, Subscription, 649, 5"></textarea></div>
     if(!date){ alert('Please pick a date.'); return; }
     if(!category){ alert('Please enter a category.'); return; }
     if(isNaN(amount) || amount <= 0){ alert('Please enter a valid amount.'); return; }
-    if(editingExpId){ const exp = expenses.find(x=>x.id===editingExpId); Object.assign(exp, { date, amount, category, currency, note }); }
-    else { expenses.push({ id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, amount, category, currency, note }); }
+    if(editingExpId){ const exp = expenses.find(x=>x.id===editingExpId); Object.assign(exp, { date, amount, category, currency, note, receipt: pendingExpReceipt }); }
+    else { expenses.push({ id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, amount, category, currency, note, receipt: pendingExpReceipt }); }
     saveExpenses(); expOverlay.classList.remove('show'); renderExpenses();
   });
 
